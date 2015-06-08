@@ -8,7 +8,7 @@ const float Object::SPEED = 0.01f;
 
 //------------------------------------------------------------------------------------------------------------
 
-Object::Object() : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.1f )
+Object::Object() : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(0.5f), roughness( 0.1f )
 {
 }
 
@@ -51,6 +51,10 @@ void Object::Update()
 	Move();
 
 	//angle.y += 0.01f;
+	if( KEY_Get( KEY_A ) ){ metalness += 0.001f; }
+	if( KEY_Get( KEY_B ) ){ metalness -= 0.001f; }
+	if( metalness <= .0f ){ metalness = .0f; }
+	if( metalness >= 1.0f ){ metalness = 1.0f; }
 
 	shader->SetValue("Metalness", metalness );
 	shader->SetValue("Roughness", roughness );

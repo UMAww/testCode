@@ -68,6 +68,15 @@ sampler SpecularSamp = sampler_state
     AddressV = Wrap;
 };
 
+textureCUBE CubeMap;	//キューブマップテクスチャ
+samplerCUBE CubeSamp = sampler_state
+{
+	Texture = <CubeMap>;
+	MinFilter = LINEAR;
+	MagFilter = LINEAR;
+	MipFilter = LINEAR;
+};
+
 //------------------------------------------------------
 //		頂点フォーマット
 //------------------------------------------------------
@@ -85,6 +94,15 @@ struct VS_INPUT
     float4 Pos    : POSITION;
     float3 Normal : NORMAL;
     float2 Tex	  : TEXCOORD0;
+};
+
+struct VS_CUBE
+{
+	float4 Pos		: POSITION;
+	float2 Tex		: TEXCOORD0;
+	float3 Normal	: TEXCOORD1;
+	float3 Eye		: TEXCOORD2;
+	float3 wPos		: TEXCOORD3;
 };
 
 float Metalness = 1.0f;
@@ -113,6 +131,22 @@ VS_OUTPUT VS_Basic( VS_INPUT In )
 }
 
 //------------------------------------------------------
+//		キューブマップ用頂点シェーダー	
+//------------------------------------------------------
+VS_CUBE VS_Cube( VS_INPUT In )
+{
+	VS_CUBE Out = (VS_CUBE)0;
+
+	Out.Pos = mul( In.Pos, Projection );
+	Out.Tex = In.Tex;
+	Out.Normal = normalize( mul( In.Normal, (float3x3)TransMatrix ) );
+	Out.wPos = mul( In.Pos, TransMatrix );
+	Out.Eye = normalize( Out.wPos - ViewPos );
+
+	return Out;
+}
+
+//------------------------------------------------------
 //		ピクセルシェーダー	
 //------------------------------------------------------
 
@@ -133,7 +167,7 @@ float4 PS_Basic( VS_OUTPUT In) : COLOR0
 	//Phong
 	float3 V = normalize( ViewPos - In.wPos );
 	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex );;
+	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex );
 
 	return Out;
 }
@@ -144,6 +178,55 @@ float4 PS_Test( VS_OUTPUT In) : COLOR0
 	//	ピクセル色決定
 	Out = In.Color * tex2D( DecaleSamp, In.Tex );
 	Out.rgb = pow( Out.rgb, 2.2f );
+
+	//正規化Lambert
+	float3 L = normalize( In.wPos - DirLightVec );
+	Out.rgb *= ( dot( In.Normal, -L ) * 0.5f + 0.5f ) / PI;
+
+	//正規化Phong
+	float3 V = normalize( ViewPos - In.wPos );
+	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
+	Out.rgb += pow( max(dot( -L, R ), .0f), sppower ) * ( ( sppower + 1.0f ) / ( 2.0f * PI ) ) * tex2D( SpecularSamp, In.Tex );
+
+	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
+	return Out;
+}
+
+//------------------------------------------------------
+//		キューブマップ用ピクセルシェーダー	
+//------------------------------------------------------
+float4 PS_Cube1( VS_CUBE In ) : COLOR0
+{
+	float4	Out;
+	//	ピクセル色決定
+	Out = tex2D( DecaleSamp, In.Tex );
+
+	//キューブマップ
+	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
+	Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * texCUBE( CubeSamp, EyeR ).rgb;
+
+	//Lambert
+	float3 L = normalize( In.wPos - DirLightVec );
+	Out.rgb *= dot( In.Normal, -L ) * 0.5f + 0.5;
+
+	//Phong
+	float3 V = normalize( ViewPos - In.wPos );
+	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
+	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex );
+
+	return Out;
+}
+
+float4 PS_Cube2( VS_CUBE In ) : COLOR0
+{
+	float4	Out;
+	//	ピクセル色決定
+	Out = tex2D( DecaleSamp, In.Tex );
+	Out.rgb = pow( Out.rgb, 2.2f );
+
+	//キューブマップ
+	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
+	Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * texCUBE( CubeSamp, EyeR ).rgb;
 
 	//正規化Lambert
 	float3 L = normalize( In.wPos - DirLightVec );
@@ -195,5 +278,41 @@ technique test
     }
 }
 
+//------------------------------------------------------
+//		キューブマップ
+//------------------------------------------------------
 
+//ガンマ補正なし
+technique cube_base
+{
+    pass P0
+    {
+		AlphaBlendEnable = true;
+		BlendOp          = Add;
+		SrcBlend         = SrcAlpha;
+		DestBlend        = InvSrcAlpha;
+		CullMode         = CCW;
+		ZEnable          = true;
+
+		VertexShader = compile vs_2_0 VS_Cube();
+		PixelShader  = compile ps_2_0 PS_Cube1();
+    }
+}
+
+//ガンマ補正あり
+technique cube_test
+{
+    pass P0
+    {
+		AlphaBlendEnable = true;
+		BlendOp          = Add;
+		SrcBlend         = SrcAlpha;
+		DestBlend        = InvSrcAlpha;
+		CullMode         = CCW;
+		ZEnable          = true;
+
+		VertexShader = compile vs_2_0 VS_Cube();
+		PixelShader  = compile ps_2_0 PS_Cube2();
+    }
+}
 

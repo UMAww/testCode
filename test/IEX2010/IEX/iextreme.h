@@ -630,6 +630,7 @@ public:
 
 	void SetValue( char* name, Texture2D* tex );
 	void SetValue( char* name, Texture2D& tex );
+	void SetValue( char* name, LPDIRECT3DCUBETEXTURE9 tex );
 
 	void SetValue( char* name, Matrix* mat );
 	void SetValue( char* name, Matrix& mat );

@@ -12,6 +12,7 @@ class	sceneMain : public Scene
 private:
 	iexView*	view;
 	iexMesh* stage;
+	iexMesh* sky;
 	Camera* camera;
 	Object* sphere;
 
@@ -23,6 +24,8 @@ public:
 	//	更新・描画
 	void Update();	//	更新
 	void Render();	//	描画
+
+	void CreateCubeMap();	//キューブマップ作成
 };
 
 

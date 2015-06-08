@@ -7,7 +7,7 @@ const float Camera::SPEED = 0.005f;
 const float Camera::UPLIMIT = 0.5f;
 const float Camera::DOWNLIMIT = 3.0f;
 
-Camera::Camera() : view(nullptr), pos( 0, 0, 0 ), angle( .0f, .0f, .0f ), DIST( 50.0f )
+Camera::Camera() : view(nullptr), pos( 0, 0, 0 ), angle( .0f, .0f, .0f ), DIST( 20.0f )
 {
 	view = new iexView();
 	D3DXQuaternionIdentity(&targetQ);

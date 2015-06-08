@@ -60,6 +60,7 @@ void iexShader::SetValue( char* name, iex2DObj& obj ){ m_pShader->SetTexture( na
 
 void iexShader::SetValue( char* name, Texture2D* tex ){ m_pShader->SetTexture( name, tex ); }
 void iexShader::SetValue( char* name, Texture2D& tex ){ m_pShader->SetTexture( name, &tex ); }
+void iexShader::SetValue( char* name, LPDIRECT3DCUBETEXTURE9 tex ){ m_pShader->SetTexture( name, tex ); }
 
 void iexShader::SetValue( char* name, Matrix* mat ){ m_pShader->SetMatrix( name, mat ); }
 void iexShader::SetValue( char* name, Matrix& mat ){ m_pShader->SetMatrix( name, &mat ); }
