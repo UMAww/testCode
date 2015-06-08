@@ -1,0 +1,28 @@
+//*****************************************************************************************************************************
+//
+//		メインシーン
+//
+//*****************************************************************************************************************************
+
+#include	"Camera.h"
+#include	"Object.h"
+
+class	sceneMain : public Scene
+{
+private:
+	iexView*	view;
+	iexMesh* stage;
+	Camera* camera;
+	Object* sphere;
+
+	bool Renderflg;
+public:
+	~sceneMain();
+	//	初期化
+	bool Initialize();
+	//	更新・描画
+	void Update();	//	更新
+	void Render();	//	描画
+};
+
+

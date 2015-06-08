@@ -1,0 +1,10 @@
+﻿2015/06/08 18:51:13 にビルドを開始しました。
+     1>ノード 2 上のプロジェクト "C:\Users\2130021.MAETEL\Desktop\shader\test\IEX2010\IEX2010.vcxproj" (Build ターゲット)。
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(355,5): warning MSB8003: Could not find WindowsSDKDir variable from the registry.  TargetFrameworkVersion or PlatformToolset may be set to an invalid version number.
+     1>Link:
+         IEX2010.vcxproj -> C:\Users\2130021.MAETEL\Desktop\shader\test\IEX2010\Debug\IEX2010.exe
+     1>プロジェクト "C:\Users\2130021.MAETEL\Desktop\shader\test\IEX2010\IEX2010.vcxproj" (Build ターゲット) のビルドが完了しました。
+
+ビルドに成功しました。
+
+経過時間 00:00:01.21
