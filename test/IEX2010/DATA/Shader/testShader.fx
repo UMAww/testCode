@@ -76,6 +76,14 @@ samplerCUBE CubeSamp = sampler_state
 	MagFilter = LINEAR;
 	MipFilter = LINEAR;
 };
+textureCUBE BlurCubeMap;	//キューブマップテクスチャ
+samplerCUBE BlurCubeSamp = sampler_state
+{
+	Texture = <BlurCubeMap>;
+	MinFilter = LINEAR;
+	MagFilter = LINEAR;
+	MipFilter = LINEAR;
+};
 
 //------------------------------------------------------
 //		頂点フォーマット
@@ -203,7 +211,8 @@ float4 PS_Cube1( VS_CUBE In ) : COLOR0
 
 	//キューブマップ
 	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
-	Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * texCUBE( CubeSamp, EyeR ).rgb;
+	Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * float3( .0f, .0f, .0f );
+	Out.rgb += ( 1.0f - Roughness ) * texCUBE( CubeSamp, EyeR ).rgb + Roughness * texCUBE( BlurCubeSamp, EyeR ).rgb;
 
 	//Lambert
 	float3 L = normalize( In.wPos - DirLightVec );
@@ -212,7 +221,7 @@ float4 PS_Cube1( VS_CUBE In ) : COLOR0
 	//Phong
 	float3 V = normalize( ViewPos - In.wPos );
 	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex );
+	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex ) * Roughness;
 
 	return Out;
 }
@@ -226,7 +235,8 @@ float4 PS_Cube2( VS_CUBE In ) : COLOR0
 
 	//キューブマップ
 	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
-	Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * texCUBE( CubeSamp, EyeR ).rgb;
+	Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * float3( .0f, .0f, .0f );
+	Out.rgb += ( 1.0f - Roughness ) * texCUBE( CubeSamp, EyeR ).rgb + Roughness * texCUBE( BlurCubeSamp, EyeR ).rgb;
 
 	//正規化Lambert
 	float3 L = normalize( In.wPos - DirLightVec );
@@ -235,7 +245,7 @@ float4 PS_Cube2( VS_CUBE In ) : COLOR0
 	//正規化Phong
 	float3 V = normalize( ViewPos - In.wPos );
 	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max(dot( -L, R ), .0f), sppower ) * ( ( sppower + 1.0f ) / ( 2.0f * PI ) ) * tex2D( SpecularSamp, In.Tex );
+	Out.rgb += pow( max(dot( -L, R ), .0f), sppower ) * ( ( sppower + 1.0f ) / ( 2.0f * PI ) ) * tex2D( SpecularSamp, In.Tex ) * ( 1.0f - Roughness );
 
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
 	return Out;

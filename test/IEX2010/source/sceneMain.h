@@ -17,6 +17,8 @@ private:
 	Object* sphere;
 
 	bool Renderflg;
+
+	iex2DObj *normal, *blur;
 public:
 	~sceneMain();
 	//	‰Šú‰»
