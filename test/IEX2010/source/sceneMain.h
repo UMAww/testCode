@@ -18,7 +18,7 @@ private:
 
 	bool Renderflg;
 
-	iex2DObj *normal, *blur;
+	iex2DObj *normal;
 public:
 	~sceneMain();
 	//	‰Šú‰»

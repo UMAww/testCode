@@ -17,6 +17,9 @@ public:
 	void Render();
 	void Render( char* name );
 
+	float GetRoughness(){ return this->roughness; }
+	float GetMetalness(){ return this->metalness; }
+
 private:
 
 	iexMesh* obj;

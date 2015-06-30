@@ -40,7 +40,6 @@ bool sceneMain::Initialize()
 	sphere -> SetScale( 0.01f );
 
 	normal = new iex2DObj( 512, 512, IEX2D_RENDERTARGET );
-	blur = new iex2DObj( 512, 512, IEX2D_RENDERTARGET );
 
 	Renderflg = true;
 
@@ -83,7 +82,7 @@ void	sceneMain::Render()
 	//キューブマップ作成
 	CreateCubeMap();
 
-	char str[128];
+	char str[1280];
 	//	画面クリア
 	camera -> Clear();
 
@@ -91,7 +90,9 @@ void	sceneMain::Render()
 	{
 		//ガンマ補正あり
 		sky->Render();
-		stage -> Render( shader, "test" );
+		shader->SetValue("Metalness", .0f );
+		shader->SetValue("Roughness", 1.0f );
+		stage -> Render( shader, "cube_test" );
 		sphere -> Render( "cube_test" );
 
 		wsprintf( str, "ガンマ補正あり" );
@@ -108,8 +109,12 @@ void	sceneMain::Render()
 		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
 	}
 
-	normal->Render( 0, 0, 256, 256, 0, 0, 512, 512 );
-	blur->Render( 256, 0, 256, 256, 0, 0, 512, 512, shader2D, "blur" );
+	normal->Render( 0, 0, 256, 256, 0, 0, 512, 512, shader2D, "blur" );
+
+	sprintf_s( str, "Roughness:%1.3f", sphere->GetRoughness() );
+	IEX_DrawText( str, 1000,80,2000,20, 0xFFFFFF00 );
+	sprintf_s( str, "Metalness:%1.3f", sphere->GetMetalness() );
+	IEX_DrawText( str, 1000,100,2000,20, 0xFFFFFF00 );
 
 }
 
@@ -125,11 +130,6 @@ void sceneMain::CreateCubeMap()
 	LPDIRECT3DCUBETEXTURE9 DynamicCubeTex;
 	iexSystem::Device->CreateCubeTexture( 512, 1,  D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL );
 	if( !DynamicCubeTex ) return;
-
-	//ぼかしキューブマップ
-	LPDIRECT3DCUBETEXTURE9 BlurCubeTex;
-	iexSystem::Device->CreateCubeTexture( 512, 1,  D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &BlurCubeTex, NULL );
-	if( !BlurCubeTex ) return;
 	
 	// カメラの向きとアップベクトル
 	Vector3 LookAt[6] = {
@@ -152,6 +152,7 @@ void sceneMain::CreateCubeMap()
 	//パース(必ず90度)
 	Matrix Projection;
 	PerspectiveLH( matProjection, D3DXToRadian( 90.0f ), 1.0f, 1.0f, 1000.0f );
+	iexSystem::Device->SetTransform( D3DTS_PROJECTION, &matProjection );
 
 	for( int i = 0; i < 6; i++ )
 	{
@@ -161,7 +162,6 @@ void sceneMain::CreateCubeMap()
 		//ビュー行列の作成
 		Matrix View;
 		LookAtLH( matView, sphere->GetPos(), sphere->GetPos()+LookAt[i], Up[i] );
-		iexSystem::Device->SetTransform( D3DTS_PROJECTION, &matProjection );
 		iexSystem::Device->SetTransform( D3DTS_VIEW, &matView );
 
 		//画面クリア
@@ -180,11 +180,6 @@ void sceneMain::CreateCubeMap()
 		   sky->Render();
 		   stage->Render( shader, "base");
 		}
-
-		blur->RenderTarget();
-
-		normal->Render( 0, 0, 512, 512, 0, 0, 512, 512, shader2D, "blur" );
-
 		iexSystem::Device->SetRenderTarget( 0, OldTarget );
 
 		//通常キューブマップ用サーフェイス指定
@@ -197,19 +192,8 @@ void sceneMain::CreateCubeMap()
 		camera->ClearScreen();
 		
 		//描画
-		normal->Render( 0, 0, 512, 512, 0, 0, 512, 512 );
-
-		//ぼかしキューブマップ用サーフェイス指定
-		LPDIRECT3DSURFACE9 BlurTarget;
-		BlurCubeTex->GetCubeMapSurface( (D3DCUBEMAP_FACES)i, 0, &BlurTarget );
-		BlurTarget->Release();		
-		iexSystem::Device->SetRenderTarget( 0, BlurTarget );
-		
-		//画面クリア
-		camera->ClearScreen();
-		
-		//描画
-		blur->Render(  0,  0, 512, 512, 0, 0, 512, 512, shader2D, "blur" );
+		shader2D->SetValue("offset", 10.0f * sphere->GetRoughness() );
+		normal->Render( 0, 0, 512, 512, 0, 0, 512, 512, shader2D, "blur" );
 	
 	}
 
@@ -218,10 +202,8 @@ void sceneMain::CreateCubeMap()
 	
 	//テクスチャの適用
 	shader->SetValue("CubeMap", DynamicCubeTex );
-	shader->SetValue("CubeMap", BlurCubeTex );
 	//キューブマップテクスチャの解放
 	DynamicCubeTex->Release();
-	BlurCubeTex->Release();
 
 }
 

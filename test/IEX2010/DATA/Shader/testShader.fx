@@ -76,14 +76,6 @@ samplerCUBE CubeSamp = sampler_state
 	MagFilter = LINEAR;
 	MipFilter = LINEAR;
 };
-textureCUBE BlurCubeMap;	//キューブマップテクスチャ
-samplerCUBE BlurCubeSamp = sampler_state
-{
-	Texture = <BlurCubeMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = LINEAR;
-};
 
 //------------------------------------------------------
 //		頂点フォーマット
@@ -158,7 +150,7 @@ VS_CUBE VS_Cube( VS_INPUT In )
 //		ピクセルシェーダー	
 //------------------------------------------------------
 
-int sppower = 30;
+int sppower = 50;
 float PI = 3.14f;
 
 //ガンマ補正なし
@@ -211,8 +203,8 @@ float4 PS_Cube1( VS_CUBE In ) : COLOR0
 
 	//キューブマップ
 	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
-	Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * float3( .0f, .0f, .0f );
-	Out.rgb += ( 1.0f - Roughness ) * texCUBE( CubeSamp, EyeR ).rgb + Roughness * texCUBE( BlurCubeSamp, EyeR ).rgb;
+	//Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * float3( .0f, .0f, .0f );
+	Out.rgb += Metalness * texCUBE( CubeSamp, EyeR ).rgb;
 
 	//Lambert
 	float3 L = normalize( In.wPos - DirLightVec );
@@ -221,7 +213,7 @@ float4 PS_Cube1( VS_CUBE In ) : COLOR0
 	//Phong
 	float3 V = normalize( ViewPos - In.wPos );
 	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex ) * Roughness;
+	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex ) * ( 1.0f - Roughness );
 
 	return Out;
 }
@@ -235,8 +227,8 @@ float4 PS_Cube2( VS_CUBE In ) : COLOR0
 
 	//キューブマップ
 	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
-	Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * float3( .0f, .0f, .0f );
-	Out.rgb += ( 1.0f - Roughness ) * texCUBE( CubeSamp, EyeR ).rgb + Roughness * texCUBE( BlurCubeSamp, EyeR ).rgb;
+	//Out.rgb = Out.rgb + ( 1.0f - Metalness ) * float3( .0f, .0f, .0f );
+	Out.rgb += Metalness * texCUBE( CubeSamp, EyeR ).rgb;
 
 	//正規化Lambert
 	float3 L = normalize( In.wPos - DirLightVec );

@@ -76,6 +76,8 @@ void Object::Render()
 
 void Object::Render( char* name )
 {
+	shader->SetValue("Metalness", metalness );
+	shader->SetValue("Roughness", roughness );
 	obj -> Render( shader, name );
 }
 
