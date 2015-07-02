@@ -153,6 +153,8 @@ VS_CUBE VS_Cube( VS_INPUT In )
 int sppower = 50;
 float PI = 3.14f;
 
+float gamma = 2.2f;
+
 //ガンマ補正なし
 float4 PS_Basic( VS_OUTPUT In) : COLOR0
 {   
@@ -177,7 +179,9 @@ float4 PS_Test( VS_OUTPUT In) : COLOR0
 	float4	Out;
 	//	ピクセル色決定
 	Out = In.Color * tex2D( DecaleSamp, In.Tex );
-	Out.rgb = pow( Out.rgb, 2.2f );
+	//ディスプレイのガンマ値を考慮して補正
+	//補正値はWindowsは約2.2、Macは約1.8
+	Out.rgb = pow(Out.rgb, gamma);
 
 	//正規化Lambert
 	float3 L = normalize( In.wPos - DirLightVec );
@@ -186,8 +190,9 @@ float4 PS_Test( VS_OUTPUT In) : COLOR0
 	//正規化Phong
 	float3 V = normalize( ViewPos - In.wPos );
 	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max(dot( -L, R ), .0f), sppower ) * ( ( sppower + 1.0f ) / ( 2.0f * PI ) ) * tex2D( SpecularSamp, In.Tex );
+	Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
 
+	//逆補正をかけて出力
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
 	return Out;
 }
@@ -213,7 +218,7 @@ float4 PS_Cube1( VS_CUBE In ) : COLOR0
 	//Phong
 	float3 V = normalize( ViewPos - In.wPos );
 	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex ) * ( 1.0f - Roughness );
+	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex ) * Roughness;
 
 	return Out;
 }
@@ -223,7 +228,7 @@ float4 PS_Cube2( VS_CUBE In ) : COLOR0
 	float4	Out;
 	//	ピクセル色決定
 	Out = tex2D( DecaleSamp, In.Tex );
-	Out.rgb = pow( Out.rgb, 2.2f );
+	Out.rgb = pow(Out.rgb, gamma);
 
 	//キューブマップ
 	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
@@ -235,9 +240,9 @@ float4 PS_Cube2( VS_CUBE In ) : COLOR0
 	Out.rgb *= ( dot( In.Normal, -L ) * 0.5f + 0.5f ) / PI;
 
 	//正規化Phong
-	float3 V = normalize( ViewPos - In.wPos );
-	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max(dot( -L, R ), .0f), sppower ) * ( ( sppower + 1.0f ) / ( 2.0f * PI ) ) * tex2D( SpecularSamp, In.Tex ) * ( 1.0f - Roughness );
+	float3 V = normalize(ViewPos - In.wPos);
+	float3 R = -V + (2.0f * dot(In.Normal, V) * In.Normal);
+	Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
 
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
 	return Out;

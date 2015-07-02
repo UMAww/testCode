@@ -3,13 +3,12 @@
 
 #include	"sceneMain.h"
 
+
 //*****************************************************************************************************************************
 //
 //	ƒOƒ[ƒoƒ‹•Ï”
 //
 //*****************************************************************************************************************************
-
-
 
 
 //*****************************************************************************************************************************
@@ -92,8 +91,8 @@ void	sceneMain::Render()
 		sky->Render();
 		shader->SetValue("Metalness", .0f );
 		shader->SetValue("Roughness", 1.0f );
-		stage -> Render( shader, "cube_test" );
-		sphere -> Render( "cube_test" );
+		stage -> Render( shader, "test" );
+		sphere -> Render( "test" );
 
 		wsprintf( str, "ƒKƒ“ƒ}•â³‚ ‚è" );
 		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
@@ -103,13 +102,13 @@ void	sceneMain::Render()
 		//ƒKƒ“ƒ}•â³‚È‚µ
 		sky->Render();
 		stage -> Render( shader, "base" );
-		sphere -> Render( "cube_base" );
+		sphere -> Render( "base" );
 
 		wsprintf( str, "ƒKƒ“ƒ}•â³‚È‚µ" );
 		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
 	}
 
-	normal->Render( 0, 0, 256, 256, 0, 0, 512, 512, shader2D, "blur" );
+	//normal->Render( 0, 0, 256, 256, 0, 0, 512, 512, shader2D, "blur" );
 
 	sprintf_s( str, "Roughness:%1.3f", sphere->GetRoughness() );
 	IEX_DrawText( str, 1000,80,2000,20, 0xFFFFFF00 );
@@ -192,7 +191,7 @@ void sceneMain::CreateCubeMap()
 		camera->ClearScreen();
 		
 		//•`‰æ
-		shader2D->SetValue("offset", 10.0f * sphere->GetRoughness() );
+		shader2D->SetValue("offset", 10.0f * ( 1.0f - sphere->GetRoughness() ));
 		normal->Render( 0, 0, 512, 512, 0, 0, 512, 512, shader2D, "blur" );
 	
 	}
