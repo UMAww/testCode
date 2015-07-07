@@ -12,7 +12,7 @@ Object::Object() : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(
 {
 }
 
-Object::Object( char* filename ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(.0f), roughness( 0.5f )
+Object::Object( char* filename ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.2f )
 {
 	obj = new iexMesh( filename );
 	this->pos = this->angle = Vector3( .0f, .0f, .0f );

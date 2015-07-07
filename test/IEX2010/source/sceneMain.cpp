@@ -90,9 +90,9 @@ void	sceneMain::Render()
 		//ƒKƒ“ƒ}•â³‚ ‚è
 		sky->Render();
 		shader->SetValue("Metalness", .0f );
-		shader->SetValue("Roughness", 1.0f );
+		shader->SetValue("Roughness", .0f );
 		stage -> Render( shader, "test" );
-		sphere -> Render( "test" );
+		sphere -> Render( "cube_test" );
 
 		wsprintf( str, "ƒKƒ“ƒ}•â³‚ ‚è" );
 		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );

@@ -110,6 +110,45 @@ float Roughness = 0.1f;
 
 //********************************************************************
 //
+//		GGXを用いたスペキュラ計算		
+//
+//********************************************************************
+float PI = 3.14159f;
+
+float G1V( float dotNV, float k )
+{
+	return 1.0f / (dotNV * (1.0f - k) + k);
+}
+float GGX_PhongCalculate( float3 Normal, float3 Eye, float3 Light, float roughness,
+						  float F0 /* フレネル反射率 */)
+{
+	float alpha = roughness * roughness;
+
+	//ハーフベクトル
+	float3 H = normalize(Eye + Light);
+
+	float NL = saturate(dot(Normal, Light));
+	float NE = saturate(dot(Normal, Eye));
+	float NH = saturate(dot(Normal, H));
+	float LH = saturate(dot(Light, H));
+
+	//GGXのNDF
+	float alphaSqr = alpha * alpha;
+	float denom = NH * NH * (alphaSqr - 1.0f) + 1.0f;
+	float Distribution = alphaSqr / (PI * denom * denom);
+
+	//フレネルのシュリック近似
+	float Fresnel = F0 + (1.0f - F0) * pow(1.0f - LH, 5);
+
+	//
+	float k = alpha / 2.0f;
+	float vis = G1V( NL, k ) * G1V( NE, k );
+
+	return NL * Distribution * Fresnel * vis;
+}
+
+//********************************************************************
+//
 //		基本３Ｄシェーダー		
 //
 //********************************************************************
@@ -151,7 +190,6 @@ VS_CUBE VS_Cube( VS_INPUT In )
 //------------------------------------------------------
 
 int sppower = 50;
-float PI = 3.14f;
 
 float gamma = 2.2f;
 
@@ -188,9 +226,11 @@ float4 PS_Test( VS_OUTPUT In) : COLOR0
 	Out.rgb *= ( dot( In.Normal, -L ) * 0.5f + 0.5f ) / PI;
 
 	//正規化Phong
-	float3 V = normalize( ViewPos - In.wPos );
-	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
+	float3 V = normalize(ViewPos - In.wPos);
+	//float3 R = -V + (2.0f * dot(In.Normal, V) * In.Normal);
+	//Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
+	float speclar = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Metalness);
+	Out.rgb += speclar;
 
 	//逆補正をかけて出力
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
@@ -241,8 +281,10 @@ float4 PS_Cube2( VS_CUBE In ) : COLOR0
 
 	//正規化Phong
 	float3 V = normalize(ViewPos - In.wPos);
-	float3 R = -V + (2.0f * dot(In.Normal, V) * In.Normal);
-	Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
+	//float3 R = -V + (2.0f * dot(In.Normal, V) * In.Normal);
+	//Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
+	float speclar = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Metalness);
+	Out.rgb += speclar;
 
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
 	return Out;
@@ -280,8 +322,8 @@ technique test
 		CullMode         = CCW;
 		ZEnable          = true;
 
-		VertexShader = compile vs_2_0 VS_Basic();
-		PixelShader  = compile ps_2_0 PS_Test();
+		VertexShader = compile vs_3_0 VS_Basic();
+		PixelShader  = compile ps_3_0 PS_Test();
     }
 }
 
@@ -318,8 +360,8 @@ technique cube_test
 		CullMode         = CCW;
 		ZEnable          = true;
 
-		VertexShader = compile vs_2_0 VS_Cube();
-		PixelShader  = compile ps_2_0 PS_Cube2();
+		VertexShader = compile vs_3_0 VS_Cube();
+		PixelShader  = compile ps_3_0 PS_Cube2();
     }
 }
 
