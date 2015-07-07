@@ -119,6 +119,7 @@ float G1V( float dotNV, float k )
 {
 	return 1.0f / (dotNV * (1.0f - k) + k);
 }
+
 float GGX_PhongCalculate( float3 Normal, float3 Eye, float3 Light, float roughness,
 						  float F0 /* フレネル反射率 */)
 {
@@ -229,8 +230,8 @@ float4 PS_Test( VS_OUTPUT In) : COLOR0
 	float3 V = normalize(ViewPos - In.wPos);
 	//float3 R = -V + (2.0f * dot(In.Normal, V) * In.Normal);
 	//Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
-	float speclar = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Metalness);
-	Out.rgb += speclar;
+	float specular = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Metalness);
+	Out.rgb += specular;
 
 	//逆補正をかけて出力
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
@@ -265,27 +266,26 @@ float4 PS_Cube1( VS_CUBE In ) : COLOR0
 
 float4 PS_Cube2( VS_CUBE In ) : COLOR0
 {
-	float4	Out;
+	float4	Out = float4( .0f, .0f, .0f, 1.0f);
 	//	ピクセル色決定
-	Out = tex2D( DecaleSamp, In.Tex );
-	Out.rgb = pow(Out.rgb, gamma);
+	float4 Albedo = tex2D( DecaleSamp, In.Tex );
+	Albedo.rgb = pow(Albedo.rgb, gamma);
 
 	//キューブマップ
 	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
-	//Out.rgb = Out.rgb + ( 1.0f - Metalness ) * float3( .0f, .0f, .0f );
-	Out.rgb += Metalness * texCUBE( CubeSamp, EyeR ).rgb;
+	float3 IBL = texCUBE( CubeSamp, EyeR ).rgb;
 
 	//正規化Lambert
 	float3 L = normalize( In.wPos - DirLightVec );
-	Out.rgb *= ( dot( In.Normal, -L ) * 0.5f + 0.5f ) / PI;
+	Albedo.rgb *= ( dot( In.Normal, -L ) * 0.5f + 0.5f ) / PI;
 
 	//正規化Phong
 	float3 V = normalize(ViewPos - In.wPos);
-	//float3 R = -V + (2.0f * dot(In.Normal, V) * In.Normal);
-	//Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
-	float speclar = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Metalness);
-	Out.rgb += speclar;
+	float specular = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Roughness);
 
+	float3 spcolor = Albedo.rgb * Metalness + float3( 1.0f, 1.0f, 1.0f ) * (1.0f - Metalness);
+	Out.rgb = Albedo.rgb +IBL * ( 1.0f - Roughness );
+	Out.rgb += specular * spcolor;
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
 	return Out;
 }

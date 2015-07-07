@@ -171,6 +171,8 @@ void sceneMain::CreateCubeMap()
 		{
 		   //ƒKƒ“ƒ}•â³‚ ‚è
 		   sky->Render();
+		   shader->SetValue("Metalness", .0f );
+		   shader->SetValue("Roughness", .0f );
 		   stage->Render( shader, "test");
 		}
 		else
@@ -191,7 +193,7 @@ void sceneMain::CreateCubeMap()
 		camera->ClearScreen();
 		
 		//•`‰æ
-		shader2D->SetValue("offset", 10.0f * ( 1.0f - sphere->GetRoughness() ));
+		shader2D->SetValue("offset", 10.0f * sphere->GetRoughness());
 		normal->Render( 0, 0, 512, 512, 0, 0, 512, 512, shader2D, "blur" );
 	
 	}
