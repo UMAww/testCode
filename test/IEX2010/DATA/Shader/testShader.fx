@@ -105,6 +105,15 @@ struct VS_CUBE
 	float3 wPos		: TEXCOORD3;
 };
 
+struct VS_PBR
+{
+	float4 Pos		: POSITION;
+	float2 Tex		: TEXCOORD0;
+	float3 wPos		: TEXCOORD1;
+	float3 Normal	: TEXCOORD2;
+	float3 Eye		: TEXCOORD3;
+};
+
 float Metalness = 1.0f;
 float Roughness = 0.1f;
 
@@ -113,7 +122,8 @@ float Roughness = 0.1f;
 //		GGXを用いたスペキュラ計算		
 //
 //********************************************************************
-float PI = 3.14159f;
+static const float PI = 3.14159265f;
+static const float OneDivPI = 1 / PI;
 
 float G1V( float dotNV, float k )
 {
@@ -146,6 +156,110 @@ float GGX_PhongCalculate( float3 Normal, float3 Eye, float3 Light, float roughne
 	float vis = G1V( NL, k ) * G1V( NE, k );
 
 	return NL * Distribution * Fresnel * vis;
+}
+
+//********************************************************************
+//
+//
+//
+//*********************************************************************
+
+static const float k0 = 0.00098, k1 = 0.9921, fUserMaxSPow = 0.2425;
+static const float g_fMaxT = ( exp2( -10.0f/sqrt(fUserMaxSPow)) - k0 ) / k1;
+static const int nMipOffset = 0;
+
+float GetSpecPowToMip( float fSpecPow, int nMips )
+{
+	fSpecPow = 1 - pow( 1 - fSpecPow, 8 );
+	float fSmulMaxT = ( exp2( -10.0f / sqrt( fSpecPow ) ) - k0 ) / k1;
+	return float( nMips-1-nMipOffset) * ( 1.0 - clamp( fSmulMaxT / g_fMaxT, 0.0, 1.0 ));
+}
+
+float3x3 contangent_frame( float3 N, float3 p, float2 Tex )
+{
+	float3 dp1 = ddx(p);
+	float3 dp2 = ddy(p);
+	float2 duv1 = ddx(Tex);
+	float2 duv2 = ddy(Tex);
+
+	float3 dp2perp = cross( dp2, N );
+	float3 dp1perp = cross( N, dp1 );
+	float3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+	float3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+
+	float invmax = rsqrt( max( dot( T,T), dot(B,B)) );
+	return float3x3( T*invmax, B*invmax, N );
+}
+
+float3 pertub_normal( float3 N, float3 V, float2 Tex)
+{
+	float3 map = tex2D( NormalSamp, Tex ).xyz;
+	map = map * 2.0 - 1.0;
+
+	float3x3 TBN = contangent_frame( N, -V, Tex );
+	return normalize( mul( map, TBN ) );
+}
+
+VS_PBR VS_testPBR( VS_INPUT In )
+{
+	VS_PBR Out = (VS_PBR)0;
+	Out.Pos = mul( In.Pos, Projection );
+	Out.Tex = In.Tex;
+	Out.Normal = mul( In.Normal, (float3x3)TransMatrix );
+	Out.wPos = mul( In.Pos, TransMatrix );
+	Out.Eye = Out.wPos - ViewPos;
+	return Out;
+}
+
+float4 PS_testPBR( VS_PBR In ) : COLOR0
+{
+	float4 Out = 0;
+
+	float3 L = normalize( DirLightVec );
+	float3 E = normalize( In.Eye );
+	float3 N = normalize( In.Normal );
+	float3 camNormalReflect = normalize( reflect( E, N ) );
+
+	//Sample texture
+	int mipLevels, width, height;
+	float4 Albedo = tex2D( DecaleSamp, In.Tex );
+	float4 specularColor = float4(lerp(0.04f.rrr, Albedo.rgb, Metalness ), 1.0f );
+	Albedo.rgb = lerp( Albedo.rgb, 0.0f.rrr, Metalness );
+	Albedo = pow( Albedo, 2.2 );
+	float4 IBL = texCUBE(CubeSamp, camNormalReflect);
+	//IBL = pow( IBL, 2.2 );
+
+	float alpha = Roughness * Roughness;
+	float alpha2 = alpha * alpha;
+	float alphaHalf = alpha * 0.5;
+
+	float4 Diffuse = float4((saturate( dot(-L, N))*OneDivPI) * DirLightColor * Albedo.rgb, 1.0);
+	Diffuse.rgb += Albedo.rgb;
+	
+	float3 H = normalize( E + L );
+	float HoN = dot( H, N );
+	float NoL = max( dot( N, -L ), 0 );
+	float NoE = max( dot( N, -E ), 0 );
+
+	//Fresnel
+	float4 schlicFresnel = specularColor + (1-specularColor) * (pow(1-dot(E,H), 5) / ( 6-5*(1-Roughness)));
+
+	float denominator = HoN * HoN * ( alpha2 - 1 ) + 1;
+	float ggxDistribution = alpha2 / ( PI * denominator * denominator );
+	float ggxGeometry = ( NoE / ( NoE * ( 1 - alphaHalf ) + alphaHalf ) );
+
+	float4 Specular = float4(((schlicFresnel*ggxDistribution*ggxGeometry) / 4*NoL*NoE).rrr * DirLightColor * specularColor.rgb, 1.0);
+	
+	float normalDotCam = max( dot( lerp( In.Normal, N, max( dot( In.Normal, -E), 0 )), -E), 0 );
+	float4 Fresnel = saturate( specularColor + (1-specularColor)*pow(1-normalDotCam, 5));
+
+	Out = lerp( Diffuse, IBL, Fresnel );
+	Out += Specular;
+
+	Out = pow( Out, 1.0/2.2 );
+	Out.a = 1.0;
+
+	return Out;
 }
 
 //********************************************************************
@@ -365,3 +479,18 @@ technique cube_test
     }
 }
 
+technique pbr_test
+{
+	pass P0
+	{
+		AlphaBlendEnable = true;
+		BlendOp = Add;
+		SrcBlend = SrcAlpha;
+		DestBlend = InvSrcAlpha;
+		CullMode = CCW;
+		ZEnable = true;
+
+		VertexShader = compile vs_3_0 VS_testPBR();
+		PixelShader = compile ps_3_0 PS_testPBR();
+	}
+}

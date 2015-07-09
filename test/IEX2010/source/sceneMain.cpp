@@ -32,6 +32,7 @@ bool sceneMain::Initialize()
 	camera = new Camera();
 
 	stage = new iexMesh("data/BG/stage/stage01.x");
+	//stage = new iexMesh("data/BG/2_1/FIELD2_1.iMo");
 	sky = new iexMesh("data/BG/sky/sky.imo");
 
 	sphere = new Object("data/sphere.x");
@@ -92,7 +93,7 @@ void	sceneMain::Render()
 		shader->SetValue("Metalness", .0f );
 		shader->SetValue("Roughness", .0f );
 		stage -> Render( shader, "test" );
-		sphere -> Render( "cube_test" );
+		sphere -> Render( "pbr_test" );
 
 		wsprintf( str, "ƒKƒ“ƒ}•â³‚ ‚è" );
 		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
