@@ -189,6 +189,7 @@ float3x3 contangent_frame( float3 N, float3 p, float2 Tex )
 
 	float invmax = rsqrt( max( dot( T,T), dot(B,B)) );
 	return float3x3( T*invmax, B*invmax, N );
+
 }
 
 float3 pertub_normal( float3 N, float3 V, float2 Tex)
@@ -218,45 +219,50 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	float3 L = normalize( DirLightVec );
 	float3 E = normalize( In.Eye );
 	float3 N = normalize( In.Normal );
+	float3x3 TBN = contangent_frame( N, E, In.Tex );
+	N = normalize( mul( N, TBN ) );
 	float3 camNormalReflect = normalize( reflect( E, N ) );
 
 	//Sample texture
-	int mipLevels, width, height;
 	float4 Albedo = tex2D( DecaleSamp, In.Tex );
+	//metalnessによってspecularカラーとalbedoカラーの決定
 	float4 specularColor = float4(lerp(0.04f.rrr, Albedo.rgb, Metalness ), 1.0f );
 	Albedo.rgb = lerp( Albedo.rgb, 0.0f.rrr, Metalness );
 	Albedo = pow( Albedo, 2.2 );
-	float4 IBL = texCUBE(CubeSamp, camNormalReflect);
-	//IBL = pow( IBL, 2.2 );
 
-	float alpha = Roughness * Roughness;
-	float alpha2 = alpha * alpha;
-	float alphaHalf = alpha * 0.5;
-
+	//Diffuse
 	float4 Diffuse = float4((saturate( dot(-L, N))*OneDivPI) * DirLightColor * Albedo.rgb, 1.0);
 	Diffuse.rgb += Albedo.rgb;
 	
 	float3 H = normalize( E + L );
-	float HoN = dot( H, N );
-	float NoL = max( dot( N, -L ), 0 );
-	float NoE = max( dot( N, -E ), 0 );
+	float HoN = saturate( dot( H, N ) );
+	float NoL = saturate( dot( N, -L ) );
+	float NoE = saturate( dot( N, -E ) );
+
+	float alpha = Roughness * Roughness;
+	float alphaSq = alpha * alpha;
+	float alphaHalf = alpha * 0.5;
 
 	//Fresnel
-	float4 schlicFresnel = specularColor + (1-specularColor) * (pow(1-dot(E,H), 5) / ( 6-5*(1-Roughness)));
+	float4 schlicFresnel = specularColor + (1-specularColor) * (pow(1-dot(L,E), 5) / ( 6-5*(1-Roughness)));
 
-	float denominator = HoN * HoN * ( alpha2 - 1 ) + 1;
-	float ggxDistribution = alpha2 / ( PI * denominator * denominator );
+	float denominator = HoN * HoN * ( alphaSq - 1 ) + 1;
+	float ggxDistribution = alphaSq / ( PI * denominator * denominator );
 	float ggxGeometry = ( NoE / ( NoE * ( 1 - alphaHalf ) + alphaHalf ) );
 
+	//Specular
 	float4 Specular = float4(((schlicFresnel*ggxDistribution*ggxGeometry) / 4*NoL*NoE).rrr * DirLightColor * specularColor.rgb, 1.0);
-	
-	float normalDotCam = max( dot( lerp( In.Normal, N, max( dot( In.Normal, -E), 0 )), -E), 0 );
-	float4 Fresnel = saturate( specularColor + (1-specularColor)*pow(1-normalDotCam, 5));
+	//SpecularIBL
+	int mipLevels = 10;
+	float4 SpecularIBL = texCUBElod(CubeSamp, float4(camNormalReflect, GetSpecPowToMip(Roughness,mipLevels) ) );
+	SpecularIBL = pow( SpecularIBL, 2.2 );
+	NoE = saturate( dot( lerp( In.Normal, N, saturate( dot( In.Normal, -E) )), -E) );
+	float4 Fresnel = saturate( specularColor + (1-specularColor)*pow(1-NoE, 5));
 
-	Out = lerp( Diffuse, IBL, Fresnel );
+	Out = lerp( Diffuse, SpecularIBL, Fresnel );
 	Out += Specular;
 
-	Out = pow( Out, 1.0/2.2 );
+	Out = pow( abs( Out ), 1.0/2.2 );
 	Out.a = 1.0;
 
 	return Out;

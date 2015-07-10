@@ -109,7 +109,7 @@ void	sceneMain::Render()
 		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
 	}
 
-	//normal->Render( 0, 0, 256, 256, 0, 0, 512, 512, shader2D, "blur" );
+	//normal -> Render( 0, 0, 512, 512, 0, 0, 512, 512 );
 
 	sprintf_s( str, "Roughness:%1.3f", sphere->GetRoughness() );
 	IEX_DrawText( str, 1000,80,2000,20, 0xFFFFFF00 );
@@ -124,15 +124,16 @@ void sceneMain::CreateCubeMap()
 	LPDIRECT3DSURFACE9 OldTarget;
 	//サーフェイスの保存
 	iexSystem::Device->GetRenderTarget( 0, &OldTarget );
-	//OldTarget->Release();
+	OldTarget->Release();
 
 	//通常キューブマップ
 	LPDIRECT3DCUBETEXTURE9 DynamicCubeTex;
-	iexSystem::Device->CreateCubeTexture( 512, 1,  D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL );
+	iexSystem::Device->CreateCubeTexture( 512, 10,  D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL );
 	if( !DynamicCubeTex ) return;
 	
 	// カメラの向きとアップベクトル
-	Vector3 LookAt[6] = {
+	static const int dir = 6;
+	Vector3 LookAt[dir] = {
 	   Vector3( 1.0f,  0.0f,  0.0f),	// +X
 	   Vector3(-1.0f,  0.0f,  0.0f),	// -X
 	   Vector3( 0.0f,  1.0f,  0.0f),	// +Y
@@ -140,7 +141,7 @@ void sceneMain::CreateCubeMap()
 	   Vector3( 0.0f,  0.0f,  1.0f),	// +Z
 	   Vector3( 0.0f,  0.0f, -1.0f) 	// -Z
 	};
-	Vector3 Up[6] = {
+	Vector3 Up[dir] = {
 	   Vector3( 0.0f,  1.0f,  0.0f),	// +X
 	   Vector3( 0.0f,  1.0f,  0.0f),	// -X
 	   Vector3( 0.0f,  0.0f, -1.0f),	// +Y
@@ -154,7 +155,7 @@ void sceneMain::CreateCubeMap()
 	PerspectiveLH( matProjection, D3DXToRadian( 90.0f ), 1.0f, 1.0f, 1000.0f );
 	iexSystem::Device->SetTransform( D3DTS_PROJECTION, &matProjection );
 
-	for( int i = 0; i < 6; i++ )
+	for( int i = 0; i < dir; i++ )
 	{
 		//通常描画用テクスチャに切り替え
 		normal->RenderTarget();
@@ -194,8 +195,7 @@ void sceneMain::CreateCubeMap()
 		camera->ClearScreen();
 		
 		//描画
-		shader2D->SetValue("offset", 10.0f * sphere->GetRoughness());
-		normal->Render( 0, 0, 512, 512, 0, 0, 512, 512, shader2D, "blur" );
+		normal->Render( 0, 0, 512, 512, 0, 0, 512, 512 );
 	
 	}
 
