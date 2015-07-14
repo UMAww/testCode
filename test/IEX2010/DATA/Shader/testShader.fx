@@ -124,6 +124,7 @@ float Roughness = 0.1f;
 //********************************************************************
 static const float PI = 3.14159265f;
 static const float OneDivPI = 1 / PI;
+static float gamma = 2.2f;
 
 float G1V( float dotNV, float k )
 {
@@ -226,9 +227,9 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	//Sample texture
 	float4 Albedo = tex2D( DecaleSamp, In.Tex );
 	//metalnessによってspecularカラーとalbedoカラーの決定
-	float4 specularColor = float4(lerp(0.04f.rrr, Albedo.rgb, Metalness ), 1.0f );
-	Albedo.rgb = lerp( Albedo.rgb, 0.0f.rrr, Metalness );
-	Albedo = pow( Albedo, 2.2 );
+	float4 specularColor = float4(lerp(0.04f.rrr, Albedo.rgb, 1-Metalness ), 1.0f );
+	Albedo.rgb = lerp( Albedo.rgb, 0.0f.rrr,1- Metalness );
+	Albedo = pow( Albedo, gamma );
 
 	//Diffuse
 	float4 Diffuse = float4((saturate( dot(-L, N))*OneDivPI) * DirLightColor * Albedo.rgb, 1.0);
@@ -262,7 +263,7 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	Out = lerp( Diffuse, SpecularIBL, Fresnel );
 	Out += Specular;
 
-	Out = pow( abs( Out ), 1.0/2.2 );
+	Out = pow( abs( Out ), 1.0/gamma );
 	Out.a = 1.0;
 
 	return Out;
@@ -311,8 +312,6 @@ VS_CUBE VS_Cube( VS_INPUT In )
 //------------------------------------------------------
 
 int sppower = 50;
-
-float gamma = 2.2f;
 
 //ガンマ補正なし
 float4 PS_Basic( VS_OUTPUT In) : COLOR0
