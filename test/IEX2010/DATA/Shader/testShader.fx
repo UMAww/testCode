@@ -126,37 +126,145 @@ static const float PI = 3.14159265f;
 static const float OneDivPI = 1 / PI;
 static float gamma = 2.2f;
 
-float G1V( float dotNV, float k )
-{
-	return 1.0f / (dotNV * (1.0f - k) + k);
-}
-
-float GGX_PhongCalculate( float3 Normal, float3 Eye, float3 Light, float roughness,
-						  float F0 /* フレネル反射率 */)
+float3 ImportanveSampleGGX( float2 Xi, float roughness, float3 Normal )
 {
 	float alpha = roughness * roughness;
+	float Phi = 2 * PI * Xi.x;
+	float CosTheta = sqrt( (1-Xi.y) / (1+(alpha*alpha - 1)+Xi.y));
+	float SinTheta = sqrt( 1 - CosTheta * CosTheta );
 
-	//ハーフベクトル
-	float3 H = normalize(Eye + Light);
+	float3 H;
+	H.x = SinTheta * cos( Phi );
+	H.y = SinTheta * sin( Phi );
+	H.z = CosTheta;
 
-	float NL = saturate(dot(Normal, Light));
-	float NE = saturate(dot(Normal, Eye));
-	float NH = saturate(dot(Normal, H));
-	float LH = saturate(dot(Light, H));
+	float3 Up = abs(Normal.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
+	float3 TangentX = normalize( cross( Up, Normal ));
+	float3 TangentY = cross( Normal, TangentX );
 
-	//GGXのNDF
-	float alphaSqr = alpha * alpha;
-	float denom = NH * NH * (alphaSqr - 1.0f) + 1.0f;
-	float Distribution = alphaSqr / (PI * denom * denom);
+	return TangentX * H.x + TangentY * H.y + Normal * H.z;
+}
 
-	//フレネルのシュリック近似
-	float Fresnel = F0 + (1.0f - F0) * pow(1.0f - LH, 5);
+float radicalInverse_VdC( uint bits )
+{
+	bits = ( bits << 16u ) | ( bits >> 16u );
+	bits = ( (bits & 0x55555555u) << 1u ) | ( (bits & 0xAAAAAAAAu) >> 1u );
+	bits = ( (bits & 0x33333333u) << 2u ) | ( (bits & 0xCCCCCCCCu) >> 2u );
+	bits = ( (bits & 0x0F0F0F0Fu) << 4u ) | ( (bits & 0xF0F0F0F0u) >> 4u );
+	bits = ( (bits & 0x00FF00FFu) << 8u ) | ( (bits & 0xFF00FF00u) >> 8u );
+	return float(bits) * 2.3283064365386963e-10;
+}
 
-	//
-	float k = alpha / 2.0f;
-	float vis = G1V( NL, k ) * G1V( NE, k );
+float2 Hammersley( uint i, uint N )
+{
+	return float2( float(i)/float(N), radicalInverse_VdC(i));
+}
 
-	return NL * Distribution * Fresnel * vis;
+float GGX( float NdotE, float a )
+{
+	float k = a / 2;
+	return NdotE / ( NdotE * (1.0f-k) + k );
+}
+
+float G_Smith( float a, float NdotE, float NdotL )
+{
+	return GGX( NdotL, a*a ) * GGX( NdotE, a*a );
+}
+
+static const uint NumSamples = 1024; 
+float3 SpecularIBL( float3 SpeColor, float roughness, float3 Normal, float3 Eye )
+{
+	float3 SpecularLighting = 0;
+
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 Xi = Hammersley( i, NumSamples );
+		float3 H = ImportanveSampleGGX( Xi, roughness, Normal );
+		float3 L = 2 * dot( Eye, H ) * H - Eye;
+		
+		float NoE = saturate( dot( Normal, Eye ) );
+		float NoL = saturate( dot( Normal, L ) );
+		float NoH = saturate( dot( Normal, H ) );
+		float EoH = saturate( dot( Eye, H ) );
+
+		if( NoL > 0 )
+		{
+			float3 SampleColor = texCUBElod(CubeSamp, float4(L, 0) ).rgb;
+
+			float G = G_Smith( roughness, NoE, NoL );
+			float Fc = pow( 1 - EoH, 5 );
+			float3 F = ( 1 - Fc ) * SpeColor + Fc;
+
+				SpecularLighting += SampleColor * F * G * EoH / ( NoH * NoE );
+		}
+	}
+
+	return SpecularLighting / NumSamples;
+}
+
+static float TotalWeight = .0f;
+float3 PrefilterEnvMap( float roughness, float3 R )
+{
+	float3 N = R;
+	float3 V = R;
+
+	float3 PrefilterColor = 0;
+
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 Xi = Hammersley( i, NumSamples );
+		float3 H = ImportanveSampleGGX( Xi, roughness, N );
+		float3 L = 2 + dot( V, H ) * H - V;
+		float NoL = saturate( dot( N, L ) );
+		if( NoL > 0 )
+		{
+			PrefilterColor += texCUBElod(CubeSamp, float4(L, 0 ) ).rgb * NoL;
+			TotalWeight += NoL;
+		}
+	}
+
+	return PrefilterColor / TotalWeight;
+}
+
+float2 IntegrateBRDF( float roughness, float NoE )
+{
+	float3 V;
+	V.x = sqrt( 1.0f - NoE * NoE ); //sin
+	V.y = .0f;
+	V.z = NoE;						//cos
+
+	float A = .0f; float B = .0f;
+
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 Xi = Hammersley( i, NumSamples );
+		float3 H = ImportanveSampleGGX( Xi, roughness, float3( 0, 0, 1 ) );
+		float3 L = 2 * dot( V, H ) * H - V;
+
+		float NoL = saturate( L.z );
+		float NoH = saturate( H.z );
+		float VoH = saturate( dot( V, H ) );
+		if( NoL > 0 )
+		{
+			float G = G_Smith( roughness, NoE, NoL );
+			float G_Vis = G * VoH / (NoH*NoE);
+			float Fc = pow( 1 - VoH, 5 );
+			A += (1-Fc) * G_Vis;
+			B += Fc * G_Vis;
+		}
+	}
+
+	return float2( A, B ) / NumSamples;
+}
+
+float3 ApproximateSpecularIBL( float3 SpecColor, float roughness, float3 Normal, float3 Eye )
+{
+	float NoE = saturate( dot( Normal, Eye ) );
+	float3 R = 2 * dot( Eye, Normal ) * Normal - Eye;
+	float3 PrefilteredColor = PrefilterEnvMap( roughness, R );
+	float2 EnvBRDF = IntegrateBRDF( roughness, NoE );
+
+	return PrefilteredColor * ( SpecColor * EnvBRDF.x + EnvBRDF.y );
 }
 
 //********************************************************************
@@ -349,8 +457,8 @@ float4 PS_Test( VS_OUTPUT In) : COLOR0
 	float3 V = normalize(ViewPos - In.wPos);
 	//float3 R = -V + (2.0f * dot(In.Normal, V) * In.Normal);
 	//Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
-	float specular = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Metalness);
-	Out.rgb += specular;
+	//float specular = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Metalness);
+	//Out.rgb += specular;
 
 	//逆補正をかけて出力
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
@@ -400,11 +508,12 @@ float4 PS_Cube2( VS_CUBE In ) : COLOR0
 
 	//正規化Phong
 	float3 V = normalize(ViewPos - In.wPos);
-	float specular = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Roughness);
+	//float specular = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Roughness);
 
 	float3 spcolor = Albedo.rgb * Metalness + float3( 1.0f, 1.0f, 1.0f ) * (1.0f - Metalness);
+	//float3 specular = SpecularIBL( spcolor, Roughness, In.Normal, In.Eye );
 	Out.rgb = Albedo.rgb +IBL * ( 1.0f - Roughness );
-	Out.rgb += specular * spcolor;
+	//Out.rgb += specular;
 	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
 	return Out;
 }

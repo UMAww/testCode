@@ -3,8 +3,8 @@
 
 #include	"sceneMain.h"
 
-//#define _Windows
-#define _Mac
+#define _Windows
+//#define _Mac
 
 
 //*****************************************************************************************************************************
@@ -48,7 +48,7 @@ bool sceneMain::Initialize()
 
 #ifdef _Windows
 	shader->SetValue("gammma", 2.2f);
-#else _Mac
+#elif _Mac
 	shader->SetValue("gammma", 1.8f );
 #endif
 
