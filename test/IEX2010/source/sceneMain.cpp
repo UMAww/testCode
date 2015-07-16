@@ -3,8 +3,8 @@
 
 #include	"sceneMain.h"
 
-#define _Windows
-//#define _Mac
+//#define _Windows
+#define _Mac
 
 
 //*****************************************************************************************************************************
@@ -12,7 +12,6 @@
 //	グローバル変数
 //
 //*****************************************************************************************************************************
-
 
 //*****************************************************************************************************************************
 //
@@ -42,13 +41,13 @@ bool sceneMain::Initialize()
 	sphere -> SetPos( Vector3( .0f, 5.0f, .0f ) );
 	sphere -> SetScale( 0.01f );
 
-	normal = new iex2DObj( 512, 512, IEX2D_RENDERTARGET );
+	normal = new iex2DObj(CUBE_SIZE, CUBE_SIZE, IEX2D_RENDERTARGET);
 
 	Renderflg = true;
 
 #ifdef _Windows
 	shader->SetValue("gammma", 2.2f);
-#elif _Mac
+#else _Mac
 	shader->SetValue("gammma", 1.8f );
 #endif
 
@@ -104,6 +103,14 @@ void	sceneMain::Render()
 		stage -> Render( shader, "test" );
 		sphere -> Render( "pbr_test" );
 
+#ifdef _Windows
+		char gamma[10];
+		wsprintf( gamma, "2.2");
+#else _Mac
+		char gamma[10];
+		wsprintf( gamma, "1.8");
+#endif
+		IEX_DrawText( gamma,10, 80, 100, 20, 0xFFFFFF00 );
 		wsprintf( str, "ガンマ補正あり" );
 		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
 	}
@@ -137,7 +144,7 @@ void sceneMain::CreateCubeMap()
 
 	//通常キューブマップ
 	LPDIRECT3DCUBETEXTURE9 DynamicCubeTex;
-	iexSystem::Device->CreateCubeTexture( 512, 10,  D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL );
+	iexSystem::Device->CreateCubeTexture(CUBE_SIZE, 9, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL);
 	if( !DynamicCubeTex ) return;
 	
 	// カメラの向きとアップベクトル
@@ -204,7 +211,7 @@ void sceneMain::CreateCubeMap()
 		camera->ClearScreen();
 		
 		//描画
-		normal->Render( 0, 0, 512, 512, 0, 0, 512, 512 );
+		normal->Render(0, 0, CUBE_SIZE, CUBE_SIZE, 0, 0, CUBE_SIZE, CUBE_SIZE);
 	
 	}
 

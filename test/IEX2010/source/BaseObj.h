@@ -7,9 +7,9 @@ public:
 	BaseObj():pos( .0f, .0f, .0f ), angle( .0f, .0f, .0f ), scale( 1.0f, 1.0f, 1.0f ){}
 	virtual ~BaseObj()=0{};
 	virtual void Init(){}
-	virtual void Update(){}
-	virtual void Render(){}
-	virtual void Render( char* name ){}
+	virtual void Update()=0{}
+	virtual void Render()=0{}
+	virtual void Render( char* name )=0{}
 
 	void SetPos( Vector3 pos ){ this->pos = pos; }
 	void SetAngle( Vector3 angle ){ this->angle = angle; }
