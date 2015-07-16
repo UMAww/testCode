@@ -116,7 +116,6 @@ struct VS_PBR
 
 float Metalness = 1.0f;
 float Roughness = 0.1f;
-float gamma = 2.2f;
 
 //********************************************************************
 //
@@ -124,31 +123,82 @@ float gamma = 2.2f;
 //
 //*********************************************************************
 
+//円周率
 static const float PI = 3.14159265f;
-int LambertModel = 0;
-static const int LAMBERT = 0;
+
+//ディスプレイガンマ値
+static const float gamma = 2.2f;
 
 //半球積分を用いたLambert
-float3 NormalizeLambert( const float3 N, const float3 E )
+float3 NormalizeLambert( in const float3 N, in const float3 E )
 {
 	return max( 0, dot( N, E ) ) * ( 1.0f / PI );
 }
 
-//Oren-Naya
-float3 OrenNaya( const float3 N, const float3 L, const float3 E, const float roughness )
+//Oren-Nayar
+float3 OrenNayar( in const float3 N, in const float3 L, in const float3 E, in const float roughness )
 {
 	float a = roughness * roughness;
 	float NoE = saturate( dot( N, E ) );
-	float NoL = saturate(dot( N, L ) );
-	float A = 1.0 - 0.5 * ( a / (a+0.57) );
-	float B = 0.45 * ( a / (a+0.09) );
+	float NoL = saturate( dot( N, L ) );
+	float A = 1.0 - 0.5 * ( a / (a+0.33) );
+	float B = 0.45 *  a / ( a + 0.09 );
 	float3 al = normalize( L - NoL * N );
-	float2 ae = normalize( E - NoE * N );
+	float3 ae = normalize( E - NoE * N );
 	float C = max( 0, dot( al, ae ) );
-	float sin = max( NoL, NoE );
-	float tan = min( NoL, NoE );
+	float sinT = max( NoL, NoE );
+	float tanT = min( NoL, NoE );
 
-	return NoL * ( A + B * C * sin * tan ) * ( 1.0 / PI );
+	return NoL * ( A + B * C * sinT * tanT );
+}
+
+//マイクロファセットの分布関数
+float Distribution( in const float roughness, in const float NoH )
+{
+	float alpha = pow( roughness, 2 );
+	float alpha2 = pow( alpha, 2 );
+	float NoH2 = pow( NoH, 2 );
+	return alpha2 / PI * pow( NoH2 * ( alpha2 - 1 ) + 1, 2 );
+}
+
+//Fresnel項(Schlickの近似式を利用)
+float3 Fresnel( in const float3 F0, in const float cosT )
+{
+	return F0 + ( 1 - F0 ) * pow( 1-cosT, 5 );
+}
+
+//GGX(幾何学減衰率)
+float G1( in const float Dot, in const float roughness )
+{
+	float k = pow( roughness, 2 ) / 2;
+	return 1.0 / ( Dot * ( 1 - k ) + k );
+}
+
+float Geometric( in const float NoL, in const float NoE, in const float roughness )
+{
+	return G1( NoL, roughness ) * G1( NoE, roughness );
+}
+
+//CookTorrance
+float3 CookTorrance( in const float3 N,in const float3 L, in const float3 E, in const float roughness, in const float3 F0 )
+{
+	//HalfVector
+	float3 H = normalize( L + E );
+	float NoE = saturate( dot( N, E ) );
+	float NoL = saturate( dot( N, L ) );
+	float NoH = saturate( dot( N, H ) );
+	float EoH = saturate( dot( E, H ) );
+
+	//Beckmann項
+	float D = Distribution( roughness, NoH );
+
+	//Fresnel項
+	float3 F = Fresnel( F0, dot( L, H ) );
+
+	//幾何学項
+	float G = Geometric( NoL, NoE, roughness );
+
+	return ( D * F * G ) / ( 4 * NoL * NoE );
 }
 
 //VertexShader
@@ -174,16 +224,23 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	float3 camNormalReflect = normalize( reflect( E, N ) );
 
 	float4 Albedo = tex2D( DecaleSamp, In.Tex );
-	Albedo.rgb = pow( Albedo.rgb, gamma );		//ディスプレイガンマを考慮して補正(Windowsは約2.2,Macは約1.8)
+	Albedo.rgb = pow( Albedo.rgb, gamma );		//ディスプレイガンマを考慮して補正
+	Albedo.rgb = Albedo.rgb - Albedo.rgb * (1-Metalness);
 
 	//Diffuse
-	//float3 Diffuse = NormalizeLambert(N, L);		//正規化Lambert
-	float3 Diffuse = OrenNaya(N, L, E, Roughness);	//OrenNaya
+	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
+	float3 Diffuse = DirLightColor / PI * OrenNayar( N, L, E, Roughness );	//OrenNaya
 
 	//Specular
+	float ior = 0.1;
+	float3 F0 = abs( ( 1.0 - ior ) / ( 1.0 * ior ) );
+	F0 = pow( F0, 2 );
+	F0 = lerp( F0, Albedo.rgb, Metalness );
+	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
 
 	//Lighting
-	Out.rgb = Albedo.rgb * Diffuse;
+	Out.rgb = Albedo.rgb * ( Diffuse + Specular );
+	Out.rgb = saturate( Out.rgb );
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;

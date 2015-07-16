@@ -3,9 +3,6 @@
 
 #include	"sceneMain.h"
 
-//#define _Windows
-#define _Mac
-
 
 //*****************************************************************************************************************************
 //
@@ -44,12 +41,6 @@ bool sceneMain::Initialize()
 	normal = new iex2DObj(CUBE_SIZE, CUBE_SIZE, IEX2D_RENDERTARGET);
 
 	Renderflg = true;
-
-#ifdef _Windows
-	shader->SetValue("gammma", 2.2f);
-#else _Mac
-	shader->SetValue("gammma", 1.8f );
-#endif
 
 	return true;
 }
@@ -103,14 +94,6 @@ void	sceneMain::Render()
 		stage -> Render( shader, "test" );
 		sphere -> Render( "pbr_test" );
 
-#ifdef _Windows
-		char gamma[10];
-		wsprintf( gamma, "2.2");
-#else _Mac
-		char gamma[10];
-		wsprintf( gamma, "1.8");
-#endif
-		IEX_DrawText( gamma,10, 80, 100, 20, 0xFFFFFF00 );
 		wsprintf( str, "ÉKÉìÉ}ï‚ê≥Ç†ÇË" );
 		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
 	}
