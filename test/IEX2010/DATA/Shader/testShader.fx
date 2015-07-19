@@ -149,7 +149,7 @@ float3 OrenNayar( in const float3 N, in const float3 L, in const float3 E, in co
 	float sinT = max( NoL, NoE );
 	float tanT = min( NoL, NoE );
 
-	return NoL * ( A + B * C * sinT * tanT );
+	return NoL * ( A + B * C * sinT * tanT ) / PI;
 }
 
 //マイクロファセットの分布関数
@@ -158,7 +158,7 @@ float Distribution( in const float roughness, in const float NoH )
 	float alpha = pow( roughness, 2 );
 	float alpha2 = pow( alpha, 2 );
 	float NoH2 = pow( NoH, 2 );
-	return alpha2 / PI * pow( NoH2 * ( alpha2 - 1 ) + 1, 2 );
+	return alpha2 / ( PI * pow( NoH2 * ( alpha2 - 1 ) + 1, 2 ) );
 }
 
 //Fresnel項(Schlickの近似式を利用)
@@ -167,7 +167,7 @@ float3 Fresnel( in const float3 F0, in const float cosT )
 	return F0 + ( 1 - F0 ) * pow( 1-cosT, 5 );
 }
 
-//GGX(幾何学減衰率)
+//幾何学減衰率
 float G1( in const float Dot, in const float roughness )
 {
 	float k = pow( roughness, 2 ) / 2;
@@ -187,7 +187,6 @@ float3 CookTorrance( in const float3 N,in const float3 L, in const float3 E, in 
 	float NoE = saturate( dot( N, E ) );
 	float NoL = saturate( dot( N, L ) );
 	float NoH = saturate( dot( N, H ) );
-	float EoH = saturate( dot( E, H ) );
 
 	//Beckmann項
 	float D = Distribution( roughness, NoH );
@@ -221,7 +220,7 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	float3 L = normalize( DirLightVec );
 	float3 E = normalize( In.Eye );
 	float3 N = normalize( In.Normal );
-	float3 camNormalReflect = normalize( reflect( E, N ) );
+	//float3 camNormalReflect = normalize( reflect( E, N ) );
 
 	float4 Albedo = tex2D( DecaleSamp, In.Tex );
 	Albedo.rgb = pow( Albedo.rgb, gamma );		//ディスプレイガンマを考慮して補正
@@ -229,14 +228,14 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 
 	//Diffuse
 	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
-	float3 Diffuse = DirLightColor / PI * OrenNayar( N, L, E, Roughness );	//OrenNaya
+	float3 Diffuse = DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
 
 	//Specular
-	float ior = 0.1;
-	float3 F0 = abs( ( 1.0 - ior ) / ( 1.0 * ior ) );
+	float ior = 1;
+	float3 F0 = abs( ( 1.0 - ior ) / ( 1.0 + ior ) );
 	F0 = pow( F0, 2 );
 	F0 = lerp( F0, Albedo.rgb, Metalness );
-	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
+	float3 Specular = CookTorrance( N, -L, E, Roughness, F0 );
 
 	//Lighting
 	Out.rgb = Albedo.rgb * ( Diffuse + Specular );
