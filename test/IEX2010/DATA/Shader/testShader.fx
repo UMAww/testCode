@@ -228,17 +228,17 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 
 	//Diffuse
 	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
-	float3 Diffuse = DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
+	float3 Diffuse = Albedo * DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
 
 	//Specular
 	float ior = 1;
 	float3 F0 = abs( ( 1.0 - ior ) / ( 1.0 + ior ) );
 	F0 = pow( F0, 2 );
 	F0 = lerp( F0, Albedo.rgb, Metalness );
-	float3 Specular = CookTorrance( N, -L, E, Roughness, F0 );
+	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
 
 	//Lighting
-	Out.rgb = Albedo.rgb * ( Diffuse + Specular );
+	Out.rgb = Diffuse +  Specular;
 	Out.rgb = saturate( Out.rgb );
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
