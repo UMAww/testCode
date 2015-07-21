@@ -170,8 +170,8 @@ float3 Fresnel( in const float3 F0, in const float cosT )
 //Šô‰½ŠwŒ¸Š—¦
 float G1( in const float Dot, in const float roughness )
 {
-	float k = pow( roughness, 2 ) / 2;
-	return 1.0 / ( Dot * ( 1 - k ) + k );
+	float k = pow( roughness+1, 2 ) / 8;
+	return Dot / ( Dot * ( 1 - k ) + k );
 }
 
 float Geometric( in const float NoL, in const float NoE, in const float roughness )
