@@ -42,6 +42,8 @@ bool sceneMain::Initialize()
 
 	Renderflg = true;
 
+	//StaticCreateCubeMap("data/CubeMaps/CubeMap3SpecularHDR.dds");
+
 	return true;
 }
 
@@ -79,7 +81,7 @@ void	sceneMain::Render()
 {
 
 	//キューブマップ作成
-	CreateCubeMap();
+	DynamicCreateCubeMap();
 
 	char str[1280];
 	//	画面クリア
@@ -118,7 +120,7 @@ void	sceneMain::Render()
 }
 
 //動的にキューブマップの作成
-void sceneMain::CreateCubeMap()
+void sceneMain::DynamicCreateCubeMap()
 {
 	LPDIRECT3DSURFACE9 OldTarget;
 	//サーフェイスの保存
@@ -127,7 +129,7 @@ void sceneMain::CreateCubeMap()
 
 	//通常キューブマップ
 	LPDIRECT3DCUBETEXTURE9 DynamicCubeTex;
-	iexSystem::Device->CreateCubeTexture(CUBE_SIZE, 9, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL);
+	iexSystem::Device->CreateCubeTexture(CUBE_SIZE, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL);
 	if( !DynamicCubeTex ) return;
 	
 	// カメラの向きとアップベクトル
@@ -208,3 +210,13 @@ void sceneMain::CreateCubeMap()
 
 }
 
+//静的にキューブマップ生成
+void sceneMain::StaticCreateCubeMap( char* filename )
+{
+	LPDIRECT3DCUBETEXTURE9 StaticCubeTex;
+	D3DXCreateCubeTextureFromFile( iexSystem::Device, filename, &StaticCubeTex );
+
+	shader->SetValue("CubeMap", StaticCubeTex );
+
+	StaticCubeTex->Release();
+}

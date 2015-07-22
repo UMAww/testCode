@@ -28,7 +28,8 @@ public:
 	void Update();	//	更新
 	void Render();	//	描画
 
-	void CreateCubeMap();	//キューブマップ作成
+	void DynamicCreateCubeMap();	//動的キューブマップ作成
+	void StaticCreateCubeMap( char* filename );
 };
 
 

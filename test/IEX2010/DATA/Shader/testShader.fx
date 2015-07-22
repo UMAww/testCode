@@ -201,7 +201,6 @@ float CookTorrance( in const float3 N,in const float3 L, in const float3 E, in c
 	//幾何学項
 	float G = Geometric( NoL, NoE, roughness );
 
-	//return ( D * F * G ) / ( 4 * NoL * NoE );
 	return NoL * D * F * G;
 }
 
@@ -225,6 +224,7 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	float3 L = normalize( DirLightVec );
 	float3 E = normalize( -In.Eye );
 	float3 N = normalize( In.Normal );
+	float3 R = normalize( reflect( -E, N ) );
 
 	float4 Albedo = tex2D( DecaleSamp, In.Tex );
 	Albedo.rgb = pow( Albedo.rgb, gamma );		//ディスプレイガンマを考慮して補正
@@ -240,6 +240,7 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 
 	//Lighting
 	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
+	//Out.rgb = pow( texCUBE( CubeSamp, R ).rgb, gamma );
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;
