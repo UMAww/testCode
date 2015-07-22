@@ -22,7 +22,7 @@ bool sceneMain::Initialize()
 	iexLight::SetAmbient(0x404040);
 	iexLight::SetFog( 800, 1000, 0 );
 
-	Vector3 dir( 2.0f, 8.0f, -3.0f );
+	Vector3 dir( .0f, 8.0f, -5.0f );
 	shader->SetValue("DirLightVec", dir*100.0f );
 	dir.Normalize();
 	iexLight::DirLight( shader, 0, &dir, 0.8f, 0.8f, 0.8f );

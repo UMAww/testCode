@@ -129,6 +129,9 @@ static const float PI = 3.14159265f;
 //ディスプレイガンマ値
 static const float gamma = 2.2f;
 
+//ネイピア数
+static const float E = 2.71828f;
+
 //半球積分を用いたLambert
 float3 NormalizeLambert( in const float3 N, in const float3 E )
 {
@@ -162,16 +165,16 @@ float Distribution( in const float roughness, in const float NoH )
 }
 
 //Fresnel項(Schlickの近似式を利用)
-float3 Fresnel( in const float3 F0, in const float cosT )
+float Fresnel( in const float F0, in const float cosT )
 {
-	return F0 + ( 1 - F0 ) * pow( 1-cosT, 5 );
+	return F0 + ( 1 - F0 ) * pow( E, -6 * cosT );
 }
 
 //幾何学減衰率
 float G1( in const float Dot, in const float roughness )
 {
-	float k = pow( roughness+1, 2 ) / 8;
-	return Dot / ( Dot * ( 1 - k ) + k );
+	float k = pow( roughness, 2 ) / 2;
+	return 1.0f / ( Dot * ( 1 - k ) + k );
 }
 
 float Geometric( in const float NoL, in const float NoE, in const float roughness )
@@ -180,24 +183,26 @@ float Geometric( in const float NoL, in const float NoE, in const float roughnes
 }
 
 //CookTorrance
-float3 CookTorrance( in const float3 N,in const float3 L, in const float3 E, in const float roughness, in const float3 F0 )
+float CookTorrance( in const float3 N,in const float3 L, in const float3 E, in const float roughness, in const float F0 )
 {
 	//HalfVector
 	float3 H = normalize( L + E );
 	float NoE = saturate( dot( N, E ) );
 	float NoL = saturate( dot( N, L ) );
 	float NoH = saturate( dot( N, H ) );
+	float LoH = saturate( dot( L, H ) );
 
 	//Beckmann項
 	float D = Distribution( roughness, NoH );
 
 	//Fresnel項
-	float3 F = Fresnel( F0, dot( L, H ) );
+	float F = Fresnel( F0, LoH );
 
 	//幾何学項
 	float G = Geometric( NoL, NoE, roughness );
 
-	return ( D * F * G ) / ( 4 * NoL * NoE );
+	//return ( D * F * G ) / ( 4 * NoL * NoE );
+	return NoL * D * F * G;
 }
 
 //VertexShader
@@ -218,28 +223,23 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	float4 Out = 1.0;
 
 	float3 L = normalize( DirLightVec );
-	float3 E = normalize( In.Eye );
+	float3 E = normalize( -In.Eye );
 	float3 N = normalize( In.Normal );
-	//float3 camNormalReflect = normalize( reflect( E, N ) );
 
 	float4 Albedo = tex2D( DecaleSamp, In.Tex );
 	Albedo.rgb = pow( Albedo.rgb, gamma );		//ディスプレイガンマを考慮して補正
-	Albedo.rgb = Albedo.rgb - Albedo.rgb * (1-Metalness);
 
 	//Diffuse
 	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
-	float3 Diffuse = Albedo * DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
+	float3 Diffuse = DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
 
 	//Specular
-	float ior = 1;
-	float3 F0 = abs( ( 1.0 - ior ) / ( 1.0 + ior ) );
-	F0 = pow( F0, 2 );
-	F0 = lerp( F0, Albedo.rgb, Metalness );
+	//float F0 = 1.0f;
+	float F0 = Metalness;
 	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
 
 	//Lighting
-	Out.rgb = Diffuse +  Specular;
-	Out.rgb = saturate( Out.rgb );
+	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;
@@ -303,7 +303,7 @@ float4 PS_Basic( VS_OUTPUT In) : COLOR0
 	//Phong
 	float3 V = normalize( ViewPos - In.wPos );
 	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex );
+	Out.rgb += pow( max( dot( -L, R ), .0f), sppower );
 
 	return Out;
 }
@@ -354,7 +354,7 @@ float4 PS_Cube1( VS_CUBE In ) : COLOR0
 	//Phong
 	float3 V = normalize( ViewPos - In.wPos );
 	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max( dot( -L, R ), .0f), sppower )  * tex2D( SpecularSamp, In.Tex ) * Roughness;
+	Out.rgb += pow( max( dot( -L, R ), .0f), sppower );
 
 	return Out;
 }
