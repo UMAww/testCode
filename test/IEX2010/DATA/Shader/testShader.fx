@@ -240,7 +240,7 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 
 	//Lighting
 	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
-	//Out.rgb = pow( texCUBE( CubeSamp, R ).rgb, gamma );
+	Out.rgb = texCUBEbias( CubeSamp, float4(R, 0) ).rgb;
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;

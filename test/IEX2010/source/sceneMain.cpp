@@ -129,7 +129,7 @@ void sceneMain::DynamicCreateCubeMap()
 
 	//通常キューブマップ
 	LPDIRECT3DCUBETEXTURE9 DynamicCubeTex;
-	iexSystem::Device->CreateCubeTexture(CUBE_SIZE, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL);
+	iexSystem::Device->CreateCubeTexture(CUBE_SIZE, 0, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &DynamicCubeTex, NULL);
 	if( !DynamicCubeTex ) return;
 	
 	// カメラの向きとアップベクトル
