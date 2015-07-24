@@ -132,6 +132,9 @@ static const float gamma = 2.2f;
 //ネイピア数
 static const float E = 2.71828f;
 
+//最大ミップマップレベル
+int MaxMipMaplevel = 0;
+
 //半球積分を用いたLambert
 float3 NormalizeLambert( in const float3 N, in const float3 E )
 {
@@ -240,7 +243,7 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 
 	//Lighting
 	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
-	Out.rgb = texCUBEbias( CubeSamp, float4(R, 0) ).rgb;
+	Out.rgb = texCUBEbias( CubeSamp, float4( R, 0 ) ).rgb;
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;

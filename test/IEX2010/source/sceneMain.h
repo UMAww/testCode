@@ -18,8 +18,8 @@ private:
 
 	bool Renderflg;
 
-	iex2DObj *normal;
-	static const int CUBE_SIZE = 256;
+	static const int CUBE_SIZE = 128;
+	static const int MIPMAP_NUM;
 public:
 	~sceneMain();
 	//	‰Šú‰»
