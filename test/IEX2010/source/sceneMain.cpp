@@ -9,7 +9,7 @@
 //
 //*****************************************************************************************************************************
 
-const int sceneMain::MIPMAP_NUM = (int)(log10((double)CUBE_SIZE) / log10(2.0));
+const int sceneMain::MIPMAP_NUM = (int)(log10((double)CUBE_SIZE) / log10(2.0))+1;
 
 //*****************************************************************************************************************************
 //
@@ -44,6 +44,8 @@ bool sceneMain::Initialize()
 
 	//シェーダー関係
 	shader->SetValue("MaxMipMaplevel", MIPMAP_NUM);
+	//キューブマップ作成
+	DynamicCreateCubeMap();
 	//StaticCreateCubeMap("data/CubeMaps/CubeMap3SpecularHDR.dds");
 
 	return true;
@@ -81,9 +83,8 @@ void	sceneMain::Update()
 //*****************************************************************************************************************************
 void	sceneMain::Render()
 {
-
 	//キューブマップ作成
-	DynamicCreateCubeMap();
+	//DynamicCreateCubeMap();
 
 	char str[1280];
 	//	画面クリア
@@ -95,7 +96,7 @@ void	sceneMain::Render()
 		sky->Render();
 		shader->SetValue("Metalness", .0f );
 		shader->SetValue("Roughness", .0f );
-		stage -> Render( shader, "test" );
+		stage -> Render( shader, "pbr_test" );
 		sphere -> Render( "pbr_test" );
 
 		wsprintf( str, "ガンマ補正あり" );
@@ -122,6 +123,9 @@ void	sceneMain::Render()
 //動的にキューブマップの作成
 void sceneMain::DynamicCreateCubeMap()
 {
+
+	iexSystem::BeginScene();
+
 	LPDIRECT3DSURFACE9 OldTarget;
 	//サーフェイスの保存
 	iexSystem::Device->GetRenderTarget( 0, &OldTarget );
@@ -158,6 +162,11 @@ void sceneMain::DynamicCreateCubeMap()
 
 	for( int i = 0; i < dir; i++ )
 	{
+		//ビュー行列の作成
+		Matrix View;
+		LookAtLH( matView, sphere->GetPos(), sphere->GetPos()+LookAt[i], Up[i] );
+		iexSystem::Device->SetTransform( D3DTS_VIEW, &matView );
+
 		//通常描画用テクスチャに切り替え
 		LPDIRECT3DSURFACE9 CurrentTarget;
 		//ミップマップレベル回描画
@@ -166,11 +175,6 @@ void sceneMain::DynamicCreateCubeMap()
 			DynamicCubeTex->GetCubeMapSurface( (D3DCUBEMAP_FACES)i, j, &CurrentTarget );
 			CurrentTarget->Release();		
 			iexSystem::Device->SetRenderTarget( 0, CurrentTarget );
-
-			//ビュー行列の作成
-			Matrix View;
-			LookAtLH( matView, sphere->GetPos(), sphere->GetPos()+LookAt[i], Up[i] );
-			iexSystem::Device->SetTransform( D3DTS_VIEW, &matView );
 
 			//画面クリア
 			camera->ClearScreen();
@@ -182,7 +186,7 @@ void sceneMain::DynamicCreateCubeMap()
 			   sky->Render();
 			   shader->SetValue("Metalness", .0f );
 			   shader->SetValue("Roughness", .0f );
-			   stage->Render( shader, "test");
+			   stage->Render( shader, "pbr_test");
 			}
 			else
 			{
@@ -201,6 +205,8 @@ void sceneMain::DynamicCreateCubeMap()
 	shader->SetValue("CubeMap", DynamicCubeTex );
 	//キューブマップテクスチャの解放
 	DynamicCubeTex->Release();
+
+	iexSystem::EndScene();
 
 }
 

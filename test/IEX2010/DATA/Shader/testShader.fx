@@ -240,10 +240,10 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	//float F0 = 1.0f;
 	float F0 = Metalness;
 	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
+	Specular += texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel-1) ) ).rgb;
 
 	//Lighting
 	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
-	Out.rgb = texCUBEbias( CubeSamp, float4( R, 0 ) ).rgb;
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;
@@ -263,131 +263,18 @@ VS_OUTPUT VS_Basic( VS_INPUT In )
 
     Out.Pos = mul(In.Pos, Projection);
 	Out.Tex = In.Tex;
-	Out.Color = 1.0f;
-	Out.Normal = mul( In.Normal, (float3x3)TransMatrix );
-	Out.Normal = normalize( Out.Normal );
-	Out.wPos = mul( In.Pos, TransMatrix );
 
     return Out;
-}
-
-//------------------------------------------------------
-//		キューブマップ用頂点シェーダー	
-//------------------------------------------------------
-VS_CUBE VS_Cube( VS_INPUT In )
-{
-	VS_CUBE Out = (VS_CUBE)0;
-
-	Out.Pos = mul( In.Pos, Projection );
-	Out.Tex = In.Tex;
-	Out.Normal = normalize( mul( In.Normal, (float3x3)TransMatrix ) );
-	Out.wPos = mul( In.Pos, TransMatrix );
-	Out.Eye = normalize( Out.wPos - ViewPos );
-
-	return Out;
 }
 
 //------------------------------------------------------
 //		ピクセルシェーダー	
 //------------------------------------------------------
 
-int sppower = 50;
-
 //ガンマ補正なし
 float4 PS_Basic( VS_OUTPUT In) : COLOR0
 {   
-	float4	Out;
-	//	ピクセル色決定
-	Out = In.Color * tex2D( DecaleSamp, In.Tex );
-
-	//Lambert
-	float3 L = normalize( In.wPos - DirLightVec );
-	Out.rgb *= dot( In.Normal, -L ) * 0.5f + 0.5;
-
-	//Phong
-	float3 V = normalize( ViewPos - In.wPos );
-	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max( dot( -L, R ), .0f), sppower );
-
-	return Out;
-}
-//ガンマ補正あり
-float4 PS_Test( VS_OUTPUT In) : COLOR0
-{   
-	float4	Out;
-	//	ピクセル色決定
-	Out = In.Color * tex2D( DecaleSamp, In.Tex );
-	//ディスプレイのガンマ値を考慮して補正
-	//補正値はWindowsは約2.2、Macは約1.8
-	Out.rgb = pow(Out.rgb, gamma);
-
-	//正規化Lambert
-	float3 L = normalize( In.wPos - DirLightVec );
-	Out.rgb *= ( dot( In.Normal, -L ) * 0.5f + 0.5f ) / PI;
-
-	//正規化Phong
-	float3 V = normalize(ViewPos - In.wPos);
-	//float3 R = -V + (2.0f * dot(In.Normal, V) * In.Normal);
-	//Out.rgb += pow(max(dot(-L, R), .0f), sppower) * ((sppower + 1.0f) / (2.0f * PI)) * tex2D(SpecularSamp, In.Tex) * Roughness;
-	//float specular = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Metalness);
-	//Out.rgb += specular;
-
-	//逆補正をかけて出力
-	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
-	return Out;
-}
-
-//------------------------------------------------------
-//		キューブマップ用ピクセルシェーダー	
-//------------------------------------------------------
-float4 PS_Cube1( VS_CUBE In ) : COLOR0
-{
-	float4	Out;
-	//	ピクセル色決定
-	Out = tex2D( DecaleSamp, In.Tex );
-
-	//キューブマップ
-	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
-	//Out.rgb = ( 1.0f - Metalness ) * Out.rgb + Metalness * float3( .0f, .0f, .0f );
-	Out.rgb += Metalness * texCUBE( CubeSamp, EyeR ).rgb;
-
-	//Lambert
-	float3 L = normalize( In.wPos - DirLightVec );
-	Out.rgb *= dot( In.Normal, -L ) * 0.5f + 0.5;
-
-	//Phong
-	float3 V = normalize( ViewPos - In.wPos );
-	float3 R = -V + ( 2.0f * dot( In.Normal, V ) * In.Normal );
-	Out.rgb += pow( max( dot( -L, R ), .0f), sppower );
-
-	return Out;
-}
-
-float4 PS_Cube2( VS_CUBE In ) : COLOR0
-{
-	float4	Out = float4( .0f, .0f, .0f, 1.0f);
-	//	ピクセル色決定
-	float4 Albedo = tex2D( DecaleSamp, In.Tex );
-	Albedo.rgb = pow(Albedo.rgb, gamma);
-
-	//キューブマップ
-	float3 EyeR = normalize( reflect( In.Eye, In.Normal ) );
-	float3 IBL = texCUBE( CubeSamp, EyeR ).rgb;
-
-	//正規化Lambert
-	float3 L = normalize( In.wPos - DirLightVec );
-	Albedo.rgb *= ( dot( In.Normal, -L ) * 0.5f + 0.5f ) / PI;
-
-	//正規化Phong
-	float3 V = normalize(ViewPos - In.wPos);
-	//float specular = GGX_PhongCalculate(In.Normal, V, -L, Roughness, Roughness);
-
-	float3 spcolor = Albedo.rgb * Metalness + float3( 1.0f, 1.0f, 1.0f ) * (1.0f - Metalness);
-	//float3 specular = SpecularIBL( spcolor, Roughness, In.Normal, In.Eye );
-	Out.rgb = Albedo.rgb +IBL * ( 1.0f - Roughness );
-	//Out.rgb += specular;
-	Out.rgb = pow( Out.rgb, 1.0f/2.2f );
-	return Out;
+	return tex2D( DecaleSamp, In.Tex );
 }
 
 //------------------------------------------------------
@@ -407,61 +294,6 @@ technique base
 
 		VertexShader = compile vs_2_0 VS_Basic();
 		PixelShader  = compile ps_2_0 PS_Basic();
-    }
-}
-
-//ガンマ補正あり
-technique test
-{
-    pass P0
-    {
-		AlphaBlendEnable = true;
-		BlendOp          = Add;
-		SrcBlend         = SrcAlpha;
-		DestBlend        = InvSrcAlpha;
-		CullMode         = CCW;
-		ZEnable          = true;
-
-		VertexShader = compile vs_3_0 VS_Basic();
-		PixelShader  = compile ps_3_0 PS_Test();
-    }
-}
-
-//------------------------------------------------------
-//		キューブマップ
-//------------------------------------------------------
-
-//ガンマ補正なし
-technique cube_base
-{
-    pass P0
-    {
-		AlphaBlendEnable = true;
-		BlendOp          = Add;
-		SrcBlend         = SrcAlpha;
-		DestBlend        = InvSrcAlpha;
-		CullMode         = CCW;
-		ZEnable          = true;
-
-		VertexShader = compile vs_2_0 VS_Cube();
-		PixelShader  = compile ps_2_0 PS_Cube1();
-    }
-}
-
-//ガンマ補正あり
-technique cube_test
-{
-    pass P0
-    {
-		AlphaBlendEnable = true;
-		BlendOp          = Add;
-		SrcBlend         = SrcAlpha;
-		DestBlend        = InvSrcAlpha;
-		CullMode         = CCW;
-		ZEnable          = true;
-
-		VertexShader = compile vs_3_0 VS_Cube();
-		PixelShader  = compile ps_3_0 PS_Cube2();
     }
 }
 

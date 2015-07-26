@@ -18,7 +18,7 @@ private:
 
 	bool Renderflg;
 
-	static const int CUBE_SIZE = 128;
+	static const int CUBE_SIZE = 512;
 	static const int MIPMAP_NUM;
 public:
 	~sceneMain();
