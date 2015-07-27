@@ -9,6 +9,8 @@
 //
 //*****************************************************************************************************************************
 
+#define ST1
+
 const int sceneMain::MIPMAP_NUM = (int)(log((double)CUBE_SIZE) / log(2.0));
 
 //*****************************************************************************************************************************
@@ -31,8 +33,11 @@ bool sceneMain::Initialize()
 	//	ƒJƒƒ‰İ’è
 	camera = new Camera();
 
+#ifdef ST1
 	stage = new iexMesh("data/BG/stage/stage01.x");
-	//stage = new iexMesh("data/BG/2_1/FIELD2_1.iMo");
+#else
+	stage = new iexMesh("data/BG/2_1/FIELD2_1.iMo");
+#endif
 	sky = new iexMesh("data/BG/sky/sky.imo");
 
 	sphere = new Object("data/sphere.x");
@@ -94,8 +99,8 @@ void	sceneMain::Render()
 	{
 		//ƒKƒ“ƒ}•â³‚ ‚è
 		sky->Render();
-		shader->SetValue("Metalness", 0.2f );
-		shader->SetValue("Roughness", 0.7f );
+		shader->SetValue("Metalness", 0.0f );
+		shader->SetValue("Roughness", 0.8f );
 		stage -> Render( shader, "pbr_test" );
 		sphere -> Render( "pbr_test" );
 
@@ -184,8 +189,8 @@ void sceneMain::DynamicCreateCubeMap()
 			{
 			   //ƒKƒ“ƒ}•â³‚ ‚è
 			   sky->Render();
-			   shader->SetValue("Metalness", 0.2f );
-			   shader->SetValue("Roughness", 0.7f );
+			   shader->SetValue("Metalness", 0.0f );
+			   shader->SetValue("Roughness", 0.8f );
 			   stage->Render( shader, "pbr_test");
 			}
 			else
