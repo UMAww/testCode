@@ -362,10 +362,14 @@ void iexInput::SetInfo()
 	}
 
 	//	ÉLÅ[Ç…ÇÊÇÈé≤ê›íË
-	if( GetAsyncKeyState(VK_NUMPAD8) < 0 ) PadAxisY2 = -1000;
-	if( GetAsyncKeyState(VK_NUMPAD2) < 0 ) PadAxisY2 = 1000;
-	if( GetAsyncKeyState(VK_NUMPAD4) < 0 ) PadAxisX2 = -1000;
-	if( GetAsyncKeyState(VK_NUMPAD6) < 0 ) PadAxisX2 = 1000;
+	//if( GetAsyncKeyState(VK_NUMPAD8) < 0 ) PadAxisY2 = -1000;
+	//if( GetAsyncKeyState(VK_NUMPAD2) < 0 ) PadAxisY2 = 1000;
+	//if( GetAsyncKeyState(VK_NUMPAD4) < 0 ) PadAxisX2 = -1000;
+	//if( GetAsyncKeyState(VK_NUMPAD6) < 0 ) PadAxisX2 = 1000;
+	if (GetAsyncKeyState('W') < 0) PadAxisY2 = -1000;
+	if (GetAsyncKeyState('S') < 0) PadAxisY2 = 1000;
+	if (GetAsyncKeyState('A') < 0) PadAxisX2 = -1000;
+	if (GetAsyncKeyState('D') < 0) PadAxisX2 = 1000;
 	//	é≤ê≥ãKâª
 	work = PadAxisX2*PadAxisX2 + PadAxisY2*PadAxisY2;
 	if( work > 1000*1000 )

@@ -96,15 +96,6 @@ struct VS_INPUT
     float2 Tex	  : TEXCOORD0;
 };
 
-struct VS_CUBE
-{
-	float4 Pos		: POSITION;
-	float2 Tex		: TEXCOORD0;
-	float3 Normal	: TEXCOORD1;
-	float3 Eye		: TEXCOORD2;
-	float3 wPos		: TEXCOORD3;
-};
-
 struct VS_PBR
 {
 	float4 Pos		: POSITION;
@@ -124,13 +115,13 @@ float Roughness = 0.1f;
 //*********************************************************************
 
 //円周率
-static const float PI = 3.14159265f;
+const float PI = 3.14159265f;
 
 //ディスプレイガンマ値
-static const float gamma = 2.2f;
+const float gamma = 2.2f;
 
 //ネイピア数
-static const float E = 2.71828f;
+const float E = 2.71828f;
 
 //最大ミップマップレベル
 int MaxMipMaplevel = 0;
@@ -168,6 +159,7 @@ float Distribution( in const float roughness, in const float NoH )
 }
 
 //Fresnel項(Schlickの近似式を利用)
+//F0:フレネル反射率
 float Fresnel( in const float F0, in const float cosT )
 {
 	return F0 + ( 1 - F0 ) * pow( E, -6 * cosT );
@@ -240,10 +232,12 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	//float F0 = 1.0f;
 	float F0 = Metalness;
 	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
-	Specular += texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel-1) ) ).rgb;
+	Diffuse += Specular;
+	//Specular += texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1) ) ).rgb;
+	float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb;
 
 	//Lighting
-	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
+	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  SpecularIBL * Metalness );
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;

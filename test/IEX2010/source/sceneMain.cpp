@@ -9,7 +9,7 @@
 //
 //*****************************************************************************************************************************
 
-const int sceneMain::MIPMAP_NUM = (int)(log10((double)CUBE_SIZE) / log10(2.0))+1;
+const int sceneMain::MIPMAP_NUM = (int)(log((double)CUBE_SIZE) / log(2.0));
 
 //*****************************************************************************************************************************
 //
@@ -94,13 +94,13 @@ void	sceneMain::Render()
 	{
 		//ガンマ補正あり
 		sky->Render();
-		shader->SetValue("Metalness", .0f );
-		shader->SetValue("Roughness", .0f );
+		shader->SetValue("Metalness", 0.2f );
+		shader->SetValue("Roughness", 0.7f );
 		stage -> Render( shader, "pbr_test" );
 		sphere -> Render( "pbr_test" );
 
 		wsprintf( str, "ガンマ補正あり" );
-		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
+		//IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
 	}
 	else
 	{
@@ -110,7 +110,7 @@ void	sceneMain::Render()
 		sphere -> Render( "base" );
 
 		wsprintf( str, "ガンマ補正なし" );
-		IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
+		//IEX_DrawText( str, 10,60,200,20, 0xFFFFF//F00 );
 	}
 
 	sprintf_s( str, "Roughness:%1.3f", sphere->GetRoughness() );
@@ -169,8 +169,8 @@ void sceneMain::DynamicCreateCubeMap()
 
 		//通常描画用テクスチャに切り替え
 		LPDIRECT3DSURFACE9 CurrentTarget;
-		//ミップマップレベル回描画
-		for( int j = 0; j < MIPMAP_NUM; j++ )
+		//ミップマップレベル回描画(1x1の分1回多くループ)
+		for( int j = 0; j < MIPMAP_NUM+1; j++ )
 		{
 			DynamicCubeTex->GetCubeMapSurface( (D3DCUBEMAP_FACES)i, j, &CurrentTarget );
 			CurrentTarget->Release();		
@@ -184,8 +184,8 @@ void sceneMain::DynamicCreateCubeMap()
 			{
 			   //ガンマ補正あり
 			   sky->Render();
-			   shader->SetValue("Metalness", .0f );
-			   shader->SetValue("Roughness", .0f );
+			   shader->SetValue("Metalness", 0.2f );
+			   shader->SetValue("Roughness", 0.7f );
 			   stage->Render( shader, "pbr_test");
 			}
 			else
