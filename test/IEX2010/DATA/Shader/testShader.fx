@@ -232,12 +232,18 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	//float F0 = 1.0f;
 	float F0 = Metalness;
 	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
-	//Specular += texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1) ) ).rgb;
+
+	//DiffuseIBL
+	float3 DiffuseIBL = texCUBEbias( CubeSamp, float4(N, 4) ).rgb;
+	//DiffuseIBL = pow( DiffuseIBL, gamma );
+
+	//SpecularIBL
 	float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb;
+	//SpecularIBL = pow( SpecularIBL, gamma );
 
 	//Lighting
 	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
-	Out.rgb += Albedo * SpecularIBL;
+	//Out.rgb += Albedo * ( DiffuseIBL + SpecularIBL );
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;

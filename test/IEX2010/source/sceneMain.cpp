@@ -100,7 +100,7 @@ void	sceneMain::Render()
 		//ƒKƒ“ƒ}•â³‚ ‚è
 		sky->Render();
 		shader->SetValue("Metalness", 0.0f );
-		shader->SetValue("Roughness", 0.8f );
+		shader->SetValue("Roughness", 1.0f );
 		stage -> Render( shader, "pbr_test" );
 		sphere -> Render( "pbr_test" );
 
@@ -185,20 +185,10 @@ void sceneMain::DynamicCreateCubeMap()
 			camera->ClearScreen();
 
 			//•`‰æ
-			if( Renderflg )
-			{
-			   //ƒKƒ“ƒ}•â³‚ ‚è
-			   sky->Render();
-			   shader->SetValue("Metalness", 0.0f );
-			   shader->SetValue("Roughness", 0.8f );
-			   stage->Render( shader, "pbr_test");
-			}
-			else
-			{
-			   //ƒKƒ“ƒ}•â³‚È‚µ
-			   sky->Render();
-			   stage->Render( shader, "base");
-			}
+			sky->Render();
+			shader->SetValue("Metalness", 0.0f );
+			shader->SetValue("Roughness", 1.0f );
+			stage->Render( shader, "pbr_test");
 		}
 	
 	}
