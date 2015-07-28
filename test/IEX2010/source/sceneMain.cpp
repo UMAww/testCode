@@ -23,9 +23,9 @@ bool sceneMain::Initialize()
 {
 	//	ŠÂ‹«İ’è
 	iexLight::SetAmbient(0x404040);
-	iexLight::SetFog( 800, 1000, 0 );
+	iexLight::SetFog( 100, 100000, 0 );
 
-	Vector3 dir( .0f, 8.0f, -5.0f );
+	Vector3 dir( .0f, -8.0f, -5.0f );
 	shader->SetValue("DirLightVec", dir*100.0f );
 	dir.Normalize();
 	iexLight::DirLight( shader, 0, &dir, 0.8f, 0.8f, 0.8f );
@@ -38,11 +38,13 @@ bool sceneMain::Initialize()
 #else
 	stage = new iexMesh("data/BG/2_1/FIELD2_1.iMo");
 #endif
-	sky = new iexMesh("data/BG/sky/sky.imo");
+	sky = new iexMesh("data/BG/sky/sky.x");
+	sky->SetScale(0.5f);
+	sky->Update();
 
-	sphere = new Object("data/sphere.x");
-	sphere -> SetPos( Vector3( .0f, 5.0f, .0f ) );
-	sphere -> SetScale( 0.01f );
+	box = new Object("data/box.x");
+	box -> SetPos( Vector3( .0f, 15.0f, .0f ) );
+	box -> SetScale( 2.0f );
 
 	Renderflg = true;
 
@@ -62,7 +64,7 @@ sceneMain::~sceneMain()
 	if( camera ){ delete camera; camera = nullptr; }
 	if( sky ){ delete sky; sky = nullptr; }
 	if( stage ){ delete stage; stage = nullptr; }
-	if( sphere ){ delete sphere; sphere = nullptr; }
+	if( box ){ delete box; box = nullptr; }
 
 }
 
@@ -73,9 +75,9 @@ sceneMain::~sceneMain()
 //*****************************************************************************************************************************
 void	sceneMain::Update()
 {
-	sphere -> Update();
+	box -> Update();
 
-	camera -> Update( sphere->GetPos() );
+	camera -> Update( box->GetPos() );
 
 
 	if( KEY_Get( KEY_ENTER ) == 3 ) Renderflg = !Renderflg;
@@ -99,10 +101,10 @@ void	sceneMain::Render()
 	{
 		//ƒKƒ“ƒ}•â³‚ ‚è
 		sky->Render();
-		shader->SetValue("Metalness", 0.0f );
-		shader->SetValue("Roughness", 1.0f );
+		shader->SetValue("Metalness", box->GetMetalness() );
+		shader->SetValue("Roughness", box->GetRoughness() );
 		stage -> Render( shader, "pbr_test" );
-		sphere -> Render( "pbr_test" );
+		box -> Render( "pbr_test" );
 
 		wsprintf( str, "ƒKƒ“ƒ}•â³‚ ‚è" );
 		//IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
@@ -112,15 +114,15 @@ void	sceneMain::Render()
 		//ƒKƒ“ƒ}•â³‚È‚µ
 		sky->Render();
 		stage -> Render( shader, "base" );
-		sphere -> Render( "base" );
+		box -> Render( "base" );
 
 		wsprintf( str, "ƒKƒ“ƒ}•â³‚È‚µ" );
 		//IEX_DrawText( str, 10,60,200,20, 0xFFFFF//F00 );
 	}
 
-	sprintf_s( str, "Roughness:%1.3f", sphere->GetRoughness() );
+	sprintf_s( str, "Roughness:%1.3f", box->GetRoughness() );
 	IEX_DrawText( str, 1000,80,2000,20, 0xFFFFFF00 );
-	sprintf_s( str, "Metalness:%1.3f", sphere->GetMetalness() );
+	sprintf_s( str, "Metalness:%1.3f", box->GetMetalness() );
 	IEX_DrawText( str, 1000,100,2000,20, 0xFFFFFF00 );
 
 }
@@ -169,7 +171,7 @@ void sceneMain::DynamicCreateCubeMap()
 	{
 		//ƒrƒ…[s—ñ‚Ìì¬
 		Matrix View;
-		LookAtLH( matView, sphere->GetPos(), sphere->GetPos()+LookAt[i], Up[i] );
+		LookAtLH( matView, box->GetPos(), box->GetPos()+LookAt[i], Up[i] );
 		iexSystem::Device->SetTransform( D3DTS_VIEW, &matView );
 
 		//’Êí•`‰æ—pƒeƒNƒXƒ`ƒƒ‚ÉØ‚è‘Ö‚¦
@@ -185,10 +187,10 @@ void sceneMain::DynamicCreateCubeMap()
 			camera->ClearScreen();
 
 			//•`‰æ
-			sky->Render();
+			sky->Render(shader,"base");
 			shader->SetValue("Metalness", 0.0f );
 			shader->SetValue("Roughness", 1.0f );
-			stage->Render( shader, "pbr_test");
+			stage->Render( shader, "base");
 		}
 	
 	}

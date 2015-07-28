@@ -101,8 +101,8 @@ struct VS_PBR
 	float4 Pos		: POSITION;
 	float2 Tex		: TEXCOORD0;
 	float3 wPos		: TEXCOORD1;
-	float3 Normal	: TEXCOORD2;
-	float3 Eye		: TEXCOORD3;
+	float3 Eye		: TEXCOORD2;
+	float3 Light	: TEXCOORD3;
 };
 
 float Metalness = 1.0f;
@@ -115,13 +115,13 @@ float Roughness = 0.1f;
 //*********************************************************************
 
 //円周率
-const float PI = 3.14159265f;
+static const float PI = 3.14159265f;
 
 //ディスプレイガンマ値
-const float gamma = 2.2f;
+static const float gamma = 2.2f;
 
 //ネイピア数
-const float E = 2.71828f;
+static const float E = 2.71828f;
 
 //最大ミップマップレベル
 int MaxMipMaplevel = 0;
@@ -205,9 +205,26 @@ VS_PBR VS_testPBR( VS_INPUT In )
 	VS_PBR Out = (VS_PBR)0;
 	Out.Pos = mul( In.Pos, Projection );
 	Out.Tex = In.Tex;
-	Out.Normal = mul( In.Normal, (float3x3)TransMatrix );
 	Out.wPos = mul( In.Pos, TransMatrix );
-	Out.Eye = Out.wPos - ViewPos;
+
+	float3 N = mul( In.Normal, (float3x3)TransMatrix );
+	N = normalize( N );
+	float3 vx;
+	float3 vy = { 0, 1, 0.001 };
+	vx = cross( vy, N );
+	vx = normalize( vx );
+	vy = cross( vx, N );
+	vy = normalize( vy );
+
+	Out.Light.x = dot( vx, -DirLightVec );
+	Out.Light.y = dot( vy, -DirLightVec );
+	Out.Light.z = dot( N, -DirLightVec );
+
+	float3 E = Out.wPos - ViewPos;
+	Out.Eye.x = dot( vx, E );
+	Out.Eye.y = dot( vy, E );
+	Out.Eye.z = dot( N, E );
+
 	return Out;
 }
 
@@ -216,10 +233,10 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 {
 	float4 Out = 1.0;
 
-	float3 L = normalize( DirLightVec );
+	float3 L = normalize( In.Light );
 	float3 E = normalize( -In.Eye );
-	float3 N = normalize( In.Normal );
-	float3 R = normalize( reflect( -E, N ) );
+	float3 N = tex2D( NormalSamp, In.Tex ).xyz * 2.0f - 1.0f;
+	float3 R = reflect( -E, N );
 
 	float4 Albedo = tex2D( DecaleSamp, In.Tex );
 	Albedo.rgb = pow( Albedo.rgb, gamma );		//ディスプレイガンマを考慮して補正
@@ -229,17 +246,16 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	float3 Diffuse = DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
 
 	//Specular
-	//float F0 = 1.0f;
 	float F0 = Metalness;
 	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
 
 	//DiffuseIBL
-	float3 DiffuseIBL = texCUBEbias( CubeSamp, float4(N, 4) ).rgb;
-	//DiffuseIBL = pow( DiffuseIBL, gamma );
+	float3 DiffuseIBL = texCUBEbias( CubeSamp, float4(N, MaxMipMaplevel/2) ).rgb;
+	DiffuseIBL = pow( DiffuseIBL, gamma );
 
 	//SpecularIBL
 	float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb;
-	//SpecularIBL = pow( SpecularIBL, gamma );
+	SpecularIBL = pow( SpecularIBL, gamma );
 
 	//Lighting
 	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
