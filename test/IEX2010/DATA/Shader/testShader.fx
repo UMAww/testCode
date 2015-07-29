@@ -236,7 +236,7 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	float3 L = normalize( In.Light );
 	float3 E = normalize( -In.Eye );
 	float3 N = tex2D( NormalSamp, In.Tex ).xyz * 2.0f - 1.0f;
-	float3 R = reflect( -E, N );
+	float3 R = reflect( E, N );
 
 	float4 Albedo = tex2D( DecaleSamp, In.Tex );
 	Albedo.rgb = pow( Albedo.rgb, gamma );		//ディスプレイガンマを考慮して補正
@@ -250,16 +250,13 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
 
 	//DiffuseIBL
-	float3 DiffuseIBL = texCUBEbias( CubeSamp, float4(N, MaxMipMaplevel/2) ).rgb;
-	DiffuseIBL = pow( DiffuseIBL, gamma );
+	float3 DiffuseIBL = texCUBEbias( CubeSamp, float4( N, (MaxMipMaplevel+1)/2) ).rgb;
 
 	//SpecularIBL
 	float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb;
-	SpecularIBL = pow( SpecularIBL, gamma );
 
-	//Lighting
 	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
-	//Out.rgb += Albedo * ( DiffuseIBL + SpecularIBL );
+	Out.rgb += Albedo * ( DiffuseIBL * ( 1 - Metalness) + SpecularIBL * Metalness );
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;

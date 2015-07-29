@@ -101,8 +101,8 @@ void	sceneMain::Render()
 	{
 		//ƒKƒ“ƒ}•â³‚ ‚è
 		sky->Render();
-		shader->SetValue("Metalness", box->GetMetalness() );
-		shader->SetValue("Roughness", box->GetRoughness() );
+		shader->SetValue("Metalness", 0.0f );
+		shader->SetValue("Roughness", 1.0f );
 		stage -> Render( shader, "pbr_test" );
 		box -> Render( "pbr_test" );
 
@@ -180,7 +180,7 @@ void sceneMain::DynamicCreateCubeMap()
 		for( int j = 0; j < MIPMAP_NUM+1; j++ )
 		{
 			DynamicCubeTex->GetCubeMapSurface( (D3DCUBEMAP_FACES)i, j, &CurrentTarget );
-			CurrentTarget->Release();		
+			//CurrentTarget->Release();		
 			iexSystem::Device->SetRenderTarget( 0, CurrentTarget );
 
 			//‰æ–ÊƒNƒŠƒA
