@@ -178,7 +178,7 @@ float Geometric( in const float NoL, in const float NoE, in const float roughnes
 }
 
 //CookTorrance
-float CookTorrance( in const float3 N,in const float3 L, in const float3 E, in const float roughness, in const float F0 )
+float CookTorrance( in const float3 N,in const float3 L, in const float3 E, in const float roughness, in const float F0, out float2 EnvBRDF  )
 {
 	//HalfVector
 	float3 H = normalize( L + E );
@@ -186,6 +186,7 @@ float CookTorrance( in const float3 N,in const float3 L, in const float3 E, in c
 	float NoL = saturate( dot( N, L ) );
 	float NoH = saturate( dot( N, H ) );
 	float LoH = saturate( dot( L, H ) );
+	float EoH = saturate( dot( E, H ) );
 
 	//Beckmann項
 	float D = Distribution( roughness, NoH );
@@ -195,6 +196,11 @@ float CookTorrance( in const float3 N,in const float3 L, in const float3 E, in c
 
 	//幾何学項
 	float G = Geometric( NoL, NoE, roughness );
+
+	//EnvBRDF
+	float G_Vis = G * EoH / ( NoH * NoE );
+	float fc = pow( 1 - EoH, 5 );
+	EnvBRDF = float2( ( 1 - fc ) * G_Vis, fc * G_Vis );
 
 	return NoL * D * F * G;
 }
@@ -243,20 +249,24 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 
 	//Diffuse
 	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
-	float3 Diffuse = DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
+	float3 Diffuse = Albedo * DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
 
 	//Specular
+	float2 EnvBRDF;
 	float F0 = Metalness;
-	float3 Specular = CookTorrance( N, L, E, Roughness, F0 );
+	float3 SpecularColor = lerp( float3( 1, 1, 1 ), Albedo, Metalness );
+	float3 Specular = SpecularColor * CookTorrance( N, L, E, Roughness, F0, EnvBRDF );
 
 	//DiffuseIBL
-	float3 DiffuseIBL = texCUBEbias( CubeSamp, float4( N, (MaxMipMaplevel+1)/2) ).rgb;
+	float3 DiffuseIBL = Albedo * DirLightColor * texCUBEbias( CubeSamp, float4( N, (MaxMipMaplevel+1)/2) ).rgb;
 
 	//SpecularIBL
-	float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb;
+	//float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
+	float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb * SpecularColor;
 
-	Out.rgb = Albedo * ( Diffuse * ( 1 - Metalness) +  Specular * Metalness );
-	Out.rgb += Albedo * ( DiffuseIBL * ( 1 - Metalness) + SpecularIBL * Metalness );
+	Out.rgb = lerp( Diffuse, Specular, Metalness );			//直接光
+	Out.rgb += lerp( DiffuseIBL, SpecularIBL, Metalness );	//間接光
+	//Out.rgb += DiffuseIBL + SpecularIBL;
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );		//ディスプレイガンマの逆補正をかけて出力
 	return Out;

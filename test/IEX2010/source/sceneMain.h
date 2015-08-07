@@ -6,6 +6,7 @@
 
 #include	"Camera.h"
 #include	"Object.h"
+#include	"Character.h"
 
 class	sceneMain : public Scene
 {
@@ -14,7 +15,8 @@ private:
 	iexMesh* stage;
 	iexMesh* sky;
 	Camera* camera;
-	Object* box;
+	Object* box,*sphere;
+	Character* p;
 
 	bool Renderflg;
 
@@ -28,7 +30,9 @@ public:
 	void Update();	//	更新
 	void Render();	//	描画
 
-	void DynamicCreateCubeMap();	//動的キューブマップ作成
+	//キューブマップ作成
+	//BasePoint:撮影原点
+	void CreateCubeMap( Vector3 BasePoint = Vector3( .0f, 2.0f, .0f));
 	void StaticCreateCubeMap( char* filename );
 };
 

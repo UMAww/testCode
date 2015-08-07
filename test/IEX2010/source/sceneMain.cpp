@@ -35,16 +35,26 @@ bool sceneMain::Initialize()
 
 #ifdef ST1
 	stage = new iexMesh("data/BG/stage/stage01.x");
-#else
-	stage = new iexMesh("data/BG/2_1/FIELD2_1.iMo");
-#endif
 	sky = new iexMesh("data/BG/sky/sky.x");
 	sky->SetScale(0.5f);
+#else
+	stage = new iexMesh("data/BG/2_1/FIELD2_1.iMo");
+	sky = new iexMesh("data/BG/sky/3ste_sky.imo");
+	sky->SetScale(0.1f);
+#endif
 	sky->Update();
 
 	box = new Object("data/box.x");
-	box -> SetPos( Vector3( .0f, 15.0f, .0f ) );
+	box -> SetPos( Vector3( .0f, 5.0f, .0f ) );
 	box -> SetScale( 2.0f );
+	
+	sphere = new Object("data/sphere.x");
+	sphere -> SetPos( Vector3( 10.0f, 5.0f, .0f ) );
+	sphere -> SetScale( 0.05f );
+
+	p = new Character("DATA/CHR/ECCMAN/ECCMAN.IEM");
+	p -> SetScale( 0.03f );
+	p -> SetPos( Vector3( -2, -1, 0 ) );
 
 	Renderflg = true;
 
@@ -52,8 +62,7 @@ bool sceneMain::Initialize()
 	//シェーダー関係
 	shader->SetValue("MaxMipMaplevel", MIPMAP_NUM);
 	//キューブマップ作成
-	DynamicCreateCubeMap();
-	//StaticCreateCubeMap("data/CubeMaps/CubeMap3SpecularHDR.dds");
+	CreateCubeMap();
 
 	return true;
 }
@@ -65,6 +74,8 @@ sceneMain::~sceneMain()
 	if( sky ){ delete sky; sky = nullptr; }
 	if( stage ){ delete stage; stage = nullptr; }
 	if( box ){ delete box; box = nullptr; }
+	if( sphere ){ delete sphere; sphere = nullptr; }
+	if( p ){ delete p; p = nullptr; }
 
 }
 
@@ -76,9 +87,11 @@ sceneMain::~sceneMain()
 void	sceneMain::Update()
 {
 	box -> Update();
+	sphere -> Update();
 
 	camera -> Update( box->GetPos() );
 
+	p -> Update();
 
 	if( KEY_Get( KEY_ENTER ) == 3 ) Renderflg = !Renderflg;
 }
@@ -99,25 +112,23 @@ void	sceneMain::Render()
 
 	if( Renderflg )
 	{
-		//ガンマ補正あり
+		//シェーダーあり
 		sky->Render();
 		shader->SetValue("Metalness", 0.0f );
 		shader->SetValue("Roughness", 1.0f );
 		stage -> Render( shader, "pbr_test" );
 		box -> Render( "pbr_test" );
-
-		wsprintf( str, "ガンマ補正あり" );
-		//IEX_DrawText( str, 10,60,200,20, 0xFFFFFF00 );
+		sphere -> Render( "pbr_test" );
+		p -> Render();
 	}
 	else
 	{
-		//ガンマ補正なし
+		//シェーダーなし
 		sky->Render();
 		stage -> Render( shader, "base" );
 		box -> Render( "base" );
-
-		wsprintf( str, "ガンマ補正なし" );
-		//IEX_DrawText( str, 10,60,200,20, 0xFFFFF//F00 );
+		sphere -> Render( "base" );
+		p -> Render();
 	}
 
 	sprintf_s( str, "Roughness:%1.3f", box->GetRoughness() );
@@ -127,8 +138,8 @@ void	sceneMain::Render()
 
 }
 
-//動的にキューブマップの作成
-void sceneMain::DynamicCreateCubeMap()
+//キューブマップの作成
+void sceneMain::CreateCubeMap( Vector3 BasePoint )
 {
 
 	iexSystem::BeginScene();
@@ -171,7 +182,7 @@ void sceneMain::DynamicCreateCubeMap()
 	{
 		//ビュー行列の作成
 		Matrix View;
-		LookAtLH( matView, box->GetPos(), box->GetPos()+LookAt[i], Up[i] );
+		LookAtLH( matView, BasePoint, BasePoint+LookAt[i], Up[i] );
 		iexSystem::Device->SetTransform( D3DTS_VIEW, &matView );
 
 		//通常描画用テクスチャに切り替え

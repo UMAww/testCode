@@ -3,6 +3,12 @@
 
 class BaseObj
 {
+protected:
+	Vector3 pos;
+	Vector3 angle;
+	Vector3 scale;
+	Vector3 move;
+	float vec;
 public:
 	BaseObj():pos( .0f, .0f, .0f ), angle( .0f, .0f, .0f ), scale( 1.0f, 1.0f, 1.0f ){}
 	virtual ~BaseObj()=0{};
@@ -19,13 +25,6 @@ public:
 	Vector3 GetPos(){ return this->pos; }
 	Vector3 GetAngle(){ return this->angle; }
 	Vector3 GetScale(){ return this->scale; }
-
-protected:
-	Vector3 pos;
-	Vector3 angle;
-	Vector3 scale;
-	Vector3 move;
-	float vec;
 };
 
 #endif

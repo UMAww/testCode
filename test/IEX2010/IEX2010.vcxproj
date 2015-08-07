@@ -108,6 +108,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\Camera.cpp" />
+    <ClCompile Include="source\Character.cpp" />
+    <ClCompile Include="source\Model.cpp" />
     <ClCompile Include="source\Object.cpp" />
     <ClCompile Include="source\sceneMain.cpp" />
     <ClCompile Include="source\system\Framework.cpp" />
@@ -133,6 +135,8 @@
   <ItemGroup>
     <ClInclude Include="source\BaseObj.h" />
     <ClInclude Include="source\Camera.h" />
+    <ClInclude Include="source\Character.h" />
+    <ClInclude Include="source\Model.h" />
     <ClInclude Include="source\Object.h" />
     <ClInclude Include="source\system\Framework.h" />
     <ClInclude Include="source\system\Scene.h" />

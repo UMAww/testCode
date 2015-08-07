@@ -5,6 +5,18 @@
 
 class Object	:	public BaseObj
 {
+private:
+
+	iexMesh* obj;
+	Vector3 move;
+	float vec;
+
+	float metalness;
+	float roughness;
+
+	static const float SPEED;
+	void Move();
+
 public:
 
 	Object();
@@ -19,17 +31,5 @@ public:
 
 	float GetRoughness(){ return this->roughness; }
 	float GetMetalness(){ return this->metalness; }
-
-private:
-
-	iexMesh* obj;
-	Vector3 move;
-	float vec;
-
-	float metalness;
-	float roughness;
-
-	static const float SPEED;
-	void Move();
 };
 #endif

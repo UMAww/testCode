@@ -8,11 +8,11 @@ const float Object::SPEED = 0.01f;
 
 //------------------------------------------------------------------------------------------------------------
 
-Object::Object() : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(.0f), roughness( 0.5f )
+Object::Object() : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.0f )
 {
 }
 
-Object::Object( char* filename ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.2f )
+Object::Object( char* filename ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.0f )
 {
 	obj = new iexMesh( filename );
 	this->pos = this->angle = Vector3( .0f, .0f, .0f );
@@ -23,7 +23,7 @@ Object::Object( char* filename ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .
 	obj->Update();
 }
 
-Object::Object( char* filename, Vector3 pos, Vector3 angle, Vector3 scale ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(.0f), roughness( 0.5f )
+Object::Object( char* filename, Vector3 pos, Vector3 angle, Vector3 scale ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.0f )
 {
 	obj = new iexMesh( filename );
 	this->pos = pos;
@@ -48,7 +48,7 @@ void Object::Init( char* filename )
 void Object::Update()
 {
 	//ˆÚ“®
-	Move();
+	//Move();
 
 	//angle.y += 0.01f;
 	if( KEY_Get( KEY_A ) ){ roughness += 0.003f; }
@@ -59,9 +59,6 @@ void Object::Update()
 	if( KEY_Get( KEY_D ) ){ metalness -= 0.003f; }
 	if( metalness <= .0f ){ metalness = .0f; }
 	if( metalness >= 1.0f ){ metalness = 1.0f; }
-
-	shader->SetValue("Metalness", metalness );
-	shader->SetValue("Roughness", roughness );
 
 	obj -> SetScale( scale );
 	obj -> SetAngle( angle );
