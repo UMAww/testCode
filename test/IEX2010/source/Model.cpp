@@ -2,17 +2,15 @@
 #include	"Model.h"
 
 Model::Model( char* filename, float speed )
+	: iex3DObj( filename ),
+	interpolationMotionNo(0),interpolationMotionFrame(0),
+	interpolationRate(.0f),interpolationSpeed(.0f),fFrame(.0f)
 {
-	iex3DObj::iex3DObj( filename );
-	interpolationMotionNo = interpolationMotionFrame = 0;
-	interpolationRate = interpolationSpeed = .0f;
 	motionSpeed = speed;
-	fFrame = .0f;
 }
 
 Model::~Model()
 {
-	iex3DObj::~iex3DObj();
 }
 
 Model* Model::Clone()

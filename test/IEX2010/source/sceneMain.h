@@ -16,7 +16,6 @@ private:
 	iexMesh* sky;
 	Camera* camera;
 	Object* box,*sphere;
-	Character* p;
 
 	bool Renderflg;
 

@@ -12,7 +12,7 @@ Character::Character():state(PlayerState::MOVE)
 {
 }
 
-Character::Character( char* filename, float speed )//:state(PlayerState::MOVE)
+Character::Character( char* filename, float speed ):state(PlayerState::MOVE)
 {
 	Init( filename, speed );
 }
@@ -79,7 +79,7 @@ void Character::Move()
 	if( AxisX*AxisX+AxisY*AxisY < 0.3f*0.3f )
 	{
 		AxisX = .0f;	AxisY = .0f;
-		ChangeMotion( 0, 0.05f );
+		ChangeMotion( 0, 0.1f );
 		return;
 	}
 	
@@ -107,5 +107,5 @@ void Character::Move()
 	else angle.y += adjust;
 
 	pos += move;
-	ChangeMotion( 1, 0.05f );
+	ChangeMotion( 1, 0.1f );
 }

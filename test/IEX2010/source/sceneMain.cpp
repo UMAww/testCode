@@ -52,10 +52,6 @@ bool sceneMain::Initialize()
 	sphere -> SetPos( Vector3( 10.0f, 5.0f, .0f ) );
 	sphere -> SetScale( 0.05f );
 
-	p = new Character("DATA/CHR/ECCMAN/ECCMAN.IEM");
-	p -> SetScale( 0.03f );
-	p -> SetPos( Vector3( -2, -1, 0 ) );
-
 	Renderflg = true;
 
 
@@ -75,7 +71,6 @@ sceneMain::~sceneMain()
 	if( stage ){ delete stage; stage = nullptr; }
 	if( box ){ delete box; box = nullptr; }
 	if( sphere ){ delete sphere; sphere = nullptr; }
-	if( p ){ delete p; p = nullptr; }
 
 }
 
@@ -89,9 +84,7 @@ void	sceneMain::Update()
 	box -> Update();
 	sphere -> Update();
 
-	camera -> Update( box->GetPos() );
-
-	p -> Update();
+	camera -> Update( sphere->GetPos() );
 
 	if( KEY_Get( KEY_ENTER ) == 3 ) Renderflg = !Renderflg;
 }
@@ -119,7 +112,6 @@ void	sceneMain::Render()
 		stage -> Render( shader, "pbr_test" );
 		box -> Render( "pbr_test" );
 		sphere -> Render( "pbr_test" );
-		p -> Render();
 	}
 	else
 	{
@@ -128,7 +120,6 @@ void	sceneMain::Render()
 		stage -> Render( shader, "base" );
 		box -> Render( "base" );
 		sphere -> Render( "base" );
-		p -> Render();
 	}
 
 	sprintf_s( str, "Roughness:%1.3f", box->GetRoughness() );
