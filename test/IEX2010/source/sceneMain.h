@@ -19,6 +19,13 @@ private:
 
 	bool Renderflg;
 
+	//G-Buffer—pRenderTarget
+	Surface* back;
+	iex2DObj* screen;
+	iex2DObj* color;
+	iex2DObj* normal;
+	iex2DObj* DMR;	//D:Depth, M:Metalness, R:Roughness
+
 	static const int CUBE_SIZE = 512;
 	static const int MIPMAP_NUM;
 public:
@@ -33,6 +40,8 @@ public:
 	//BasePoint:ŽB‰eŒ´“_
 	void CreateCubeMap( Vector3 BasePoint = Vector3( .0f, 2.0f, .0f));
 	void StaticCreateCubeMap( char* filename );
+
+	void CreateG_Buffer();
 };
 
 

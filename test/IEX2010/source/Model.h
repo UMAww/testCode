@@ -7,8 +7,8 @@ class Model : public iex3DObj
 {
 private:
 
-	int interpolationMotionNo;
-	int interpolationMotionFrame;
+	unsigned int interpolationMotionNo;
+	unsigned int interpolationMotionFrame;
 	float interpolationRate;
 	float interpolationSpeed;
 

@@ -59,6 +59,12 @@ bool sceneMain::Initialize()
 	shader->SetValue("MaxMipMaplevel", MIPMAP_NUM);
 	//キューブマップ作成
 	CreateCubeMap();
+	//RenderTarget
+	iexSystem::GetDevice()->GetRenderTarget( 0, &back );
+	screen = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
+	color = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
+	normal = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
+	DMR = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_FLOAT);
 
 	return true;
 }
@@ -71,6 +77,10 @@ sceneMain::~sceneMain()
 	if( stage ){ delete stage; stage = nullptr; }
 	if( box ){ delete box; box = nullptr; }
 	if( sphere ){ delete sphere; sphere = nullptr; }
+	if( screen ){ delete screen; screen = nullptr; }
+	if( color ){ delete color; color = nullptr; }
+	if( normal ){ delete normal; normal = nullptr; }
+	if( DMR ){ delete DMR; DMR = nullptr; }
 
 }
 
@@ -99,9 +109,16 @@ void	sceneMain::Render()
 	//キューブマップ作成
 	//DynamicCreateCubeMap();
 
+	CreateG_Buffer();
+
 	char str[1280];
 	//	画面クリア
 	camera -> Clear();
+
+	shader -> SetValue("matView", matView );
+	Matrix invProj;
+	D3DXMatrixInverse( &invProj, 0, &matProjection );
+	shader -> SetValue("invProjection", invProj );
 
 	if( Renderflg )
 	{
@@ -126,6 +143,31 @@ void	sceneMain::Render()
 	IEX_DrawText( str, 1000,80,2000,20, 0xFFFFFF00 );
 	sprintf_s( str, "Metalness:%1.3f", box->GetMetalness() );
 	IEX_DrawText( str, 1000,100,2000,20, 0xFFFFFF00 );
+
+}
+
+void sceneMain::CreateG_Buffer()
+{
+	color -> RenderTarget();
+	normal -> RenderTarget( 1 );
+	DMR -> RenderTarget( 2 );
+
+	camera -> Clear();
+
+	sky->Render();
+	shader->SetValue("Metalness", 0.0f);
+	shader->SetValue("Roughness", 1.0f);
+	stage->Render(shader, "create_gbuffer");
+	box->Render("create_gbuffer");
+	sphere->Render("create_gbuffer");
+
+	iexSystem::GetDevice()->SetRenderTarget( 0, back );
+	iexSystem::GetDevice()->SetRenderTarget( 1, NULL );
+	iexSystem::GetDevice()->SetRenderTarget( 2, NULL );
+
+	shader -> SetValue("ColorMap", color );
+	shader -> SetValue("NormalMap", normal );
+	shader -> SetValue("DMRSamp", DMR );
 
 }
 

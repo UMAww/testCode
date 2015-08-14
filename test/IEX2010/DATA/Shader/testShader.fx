@@ -7,7 +7,9 @@
 //		環境関連
 //------------------------------------------------------
 float4x4 Projection;	//	投影変換行列
-float4x4 TransMatrix;	//ワールド変換行列
+float4x4 InvProjection;	//	逆投影変換行列
+float4x4 TransMatrix;	//	ワールド変換行列
+float4x4 matView;		//	カメラ変換行列
 
 float3 ViewPos;			//カメラ位置
 
@@ -332,6 +334,89 @@ technique pbr_test
 		ZEnable = true;
 
 		VertexShader = compile vs_3_0 VS_testPBR();
-		PixelShader = compile ps_3_0 PS_testPBR();
+		PixelShader  = compile ps_3_0 PS_testPBR();
+	}
+}
+
+//********************************************************************
+//																									
+//		Deferred用G-Buffer作成	
+//
+//********************************************************************
+
+struct VS_G_BUFFER
+{
+	float4 Position			: POSITION;
+	float2 Tex				: TEXCOORD0;
+	float3 Normal			: TEXCOORD1;
+	float3 BiNormal			: TEXCOORD2;
+	float3 Tangent			: TEXCOORD3;
+	float4 ProjectionPos	: TEXCOORD4;
+};
+
+struct PS_G_BUFFER
+{
+	float4 Color	: COLOR0;
+	float4 Normal	: COLOR1;
+	float4 DMR		: COLOR2;	//Depth,Metalness,Roughness
+};
+
+VS_G_BUFFER VS_CreateG_Buffer( VS_INPUT In )
+{
+	VS_G_BUFFER Out = (VS_G_BUFFER)0;
+
+	Out.Position = mul( In.Pos, Projection );
+	Out.ProjectionPos = Out.Position;
+	Out.Tex = In.Tex;
+	Out.Normal = mul( In.Normal, (float3x3)TransMatrix );
+	Out.Normal = normalize( Out.Normal );
+	float3 Y = { 0, 1, 0.001 };
+	Out.Tangent = cross(Y, Out.Normal);
+	Out.Tangent = normalize(Out.Tangent);
+	Out.BiNormal = cross(Out.Tangent, Out.Normal);
+	Out.BiNormal - normalize(Out.BiNormal);
+
+	return Out;
+}
+
+PS_G_BUFFER PS_CreateG_Buffer( VS_G_BUFFER In ) : COLOR
+{
+	PS_G_BUFFER Out = (PS_G_BUFFER)1;
+
+	Out.Color = tex2D( DecaleSamp, In.Tex );
+
+	float3x3 View;
+	View[0] = normalize( In.Tangent );
+	View[1] = normalize( In.BiNormal );
+	View[2] = normalize( In.Normal );
+	float3 N = tex2D( NormalSamp, In.Tex ).rgb * 2.0 - 1.0;
+	N = mul( N, View );
+	N = normalize( N );
+	N = N * 0.5 + 0.5;
+	Out.Normal =float4( N, 1 );
+
+	float D = In.ProjectionPos.z / In.ProjectionPos.w;
+	//float M = tex2D( MetalnessSamp, In.Tex ).r;
+	//float R = tex2D( RoughnessSamp, In.Tex ).r;
+	float M = Metalness;
+	float R = Roughness;
+	Out.DMR = float4( D, M, R, 1 );
+
+	return Out;
+}
+
+technique create_gbuffer
+{
+	pass P0
+	{
+		AlphaBlendEnable = true;
+		BlendOp = Add;
+		SrcBlend = SrcAlpha;
+		DestBlend = InvSrcAlpha;
+		CullMode = CCW;
+		ZEnable = true;
+
+		VertexShader = compile vs_3_0 VS_CreateG_Buffer();
+		PixelShader  = compile ps_3_0 PS_CreateG_Buffer();
 	}
 }
