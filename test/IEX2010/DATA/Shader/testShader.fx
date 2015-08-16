@@ -381,7 +381,7 @@ VS_G_BUFFER VS_CreateG_Buffer( VS_INPUT In )
 
 PS_G_BUFFER PS_CreateG_Buffer( VS_G_BUFFER In ) : COLOR
 {
-	PS_G_BUFFER Out = (PS_G_BUFFER)1;
+	PS_G_BUFFER Out = (PS_G_BUFFER)0;
 
 	Out.Color = tex2D( DecaleSamp, In.Tex );
 
@@ -418,5 +418,119 @@ technique create_gbuffer
 
 		VertexShader = compile vs_3_0 VS_CreateG_Buffer();
 		PixelShader  = compile ps_3_0 PS_CreateG_Buffer();
+	}
+}
+
+//********************************************************************
+//																									
+//		DeferredLighting
+//
+//********************************************************************
+
+texture ColorMap;
+sampler ColorSamp = sampler_state
+{
+	Texture = <ColorMap>;
+	MinFilter = LINEAR;
+	MagFilter = LINEAR;
+	MipFilter = NONE;
+
+	AddressU = Wrap;
+	AddressV = Wrap;
+};
+
+texture DMRMap;	// D:Depth, M:Metalness, R:Roguhness
+sampler DMRSamp = sampler_state
+{
+	Texture = <DMRMap>;
+	MinFilter = LINEAR;
+	MagFilter = LINEAR;
+	MipFilter = NONE;
+
+	AddressU = Wrap;
+	AddressV = Wrap;
+};
+
+struct VS_2D
+{
+	float4 Position	: POSITION;
+	float2 Tex		: TEXCOORD0;
+};
+
+float4 ConvertViewPosition(float4 position, float2 Tex)
+{
+	position.xy = position.xy * 2.0 - 1.0;
+	position.y = -position.y;
+	position.z = tex2D(DMRSamp, Tex).r;
+	position = mul(position, InvProjection);
+	position.xyz /= position.w;
+
+	return position;
+}
+
+VS_2D VS_Deferred( VS_INPUT In )
+{
+	VS_2D Out = (VS_2D)0;
+	Out.Position = In.Pos;
+	Out.Tex = In.Tex;
+	return Out;
+}
+
+float4 PS_DeferredDirLight( VS_2D In ) : COLOR0
+{
+	float4 Out = (float4)1;
+
+	float4 Albedo = tex2D( ColorSamp, In.Tex );
+	Albedo = pow( Albedo, gamma );
+
+	float3 L = normalize( mul( -DirLightVec, matView ) );
+	//正規化されたスクリーン座標をビュー空間へ変換
+	float4 position = ConvertViewPosition(float4(In.Tex, 0, 1), In.Tex);
+	float3 E = normalize( position.xyz );
+	float3 N = tex2D(NormalSamp, In.Tex).xyz * 2.0f - 1.0f;
+	N = normalize( N );
+	float3 Ref = reflect(E, N);
+
+	float M = tex2D( DMRSamp, In.Tex ).g;
+	float R = tex2D( DMRSamp, In.Tex ).b;
+
+	//Diffuse
+	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
+	float3 Diffuse = Albedo * DirLightColor * OrenNayar(N, L, E, R);	//OrenNaya
+
+	//Specular
+	float2 EnvBRDF;
+	float F0 = M;
+	float3 SpecularColor = lerp(float3(1, 1, 1), Albedo, M);
+	float3 Specular = SpecularColor * CookTorrance(N, L, E, R, F0, EnvBRDF);
+
+	//DiffuseIBL
+	float3 DiffuseIBL = Albedo * DirLightColor * texCUBEbias(CubeSamp, float4(N, (MaxMipMaplevel + 1) / 2)).rgb;
+
+	//SpecularIBL
+	//float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
+	float3 SpecularIBL = texCUBEbias(CubeSamp, float4(Ref, R*(MaxMipMaplevel + 1))).rgb * SpecularColor;
+
+	Out.rgb = lerp(Diffuse, Specular, M);			//直接光
+	Out.rgb += lerp(DiffuseIBL, SpecularIBL, M);	//間接光
+	//Out.rgb += DiffuseIBL + SpecularIBL;
+
+	Out.rgb = pow( Out.rgb, 1.0f/gamma );
+	return Out;
+}
+
+technique DeferredDir
+{
+	pass P0
+	{
+		AlphaBlendEnable = true;
+		BlendOp = Add;
+		SrcBlend = SrcAlpha;
+		DestBlend = InvSrcAlpha;
+		CullMode = CCW;
+		ZEnable = true;
+
+		VertexShader = compile vs_3_0 VS_Deferred();
+		PixelShader  = compile ps_3_0 PS_DeferredDirLight();
 	}
 }

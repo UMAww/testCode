@@ -118,25 +118,27 @@ void	sceneMain::Render()
 	shader -> SetValue("matView", matView );
 	Matrix invProj;
 	D3DXMatrixInverse( &invProj, 0, &matProjection );
-	shader -> SetValue("invProjection", invProj );
+	shader -> SetValue("InvProjection", invProj );
 
 	if( Renderflg )
 	{
-		//シェーダーあり
-		sky->Render();
-		shader->SetValue("Metalness", 0.0f );
-		shader->SetValue("Roughness", 1.0f );
-		stage -> Render( shader, "pbr_test" );
-		box -> Render( "pbr_test" );
-		sphere -> Render( "pbr_test" );
+		//Deferred
+		screen -> Render(shader,"DeferredDir");
+
+		//G-Buffer
+		color -> Render( 0,0,320,180,0,0,1280,720 );
+		normal -> Render( 320,0,320,180,0,0,1280,720 );
+		DMR -> Render( 640,0,320,180,0,0,1280,720 );
 	}
 	else
 	{
-		//シェーダーなし
+		//Forward
 		sky->Render();
-		stage -> Render( shader, "base" );
-		box -> Render( "base" );
-		sphere -> Render( "base" );
+		shader->SetValue("Metalness", 0.0f);
+		shader->SetValue("Roughness", 1.0f);
+		stage->Render(shader, "pbr_test");
+		box->Render("pbr_test");
+		sphere->Render("pbr_test");
 	}
 
 	sprintf_s( str, "Roughness:%1.3f", box->GetRoughness() );
@@ -167,7 +169,7 @@ void sceneMain::CreateG_Buffer()
 
 	shader -> SetValue("ColorMap", color );
 	shader -> SetValue("NormalMap", normal );
-	shader -> SetValue("DMRSamp", DMR );
+	shader -> SetValue("DMRMap", DMR );
 
 }
 
