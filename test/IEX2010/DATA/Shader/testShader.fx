@@ -485,6 +485,7 @@ float4 PS_DeferredDirLight( VS_2D In ) : COLOR0
 
 	//正規化されたスクリーン座標をビュー空間へ変換
 	float4 position = ConvertViewPosition(float4(In.Tex, 0, 1), In.Tex);
+	position = mul( position, TransMatrix );
 	float3 E = normalize( position.xyz - ViewPos );
 	float3 L = normalize( position.xyz - DirLightVec );
 	float3 N = tex2D(NormalSamp, In.Tex).xyz * 2.0 - 1.0;
