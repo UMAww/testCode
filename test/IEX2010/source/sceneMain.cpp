@@ -64,7 +64,7 @@ bool sceneMain::Initialize()
 	screen = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	color = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
 	normal = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
-	DMR = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_FLOAT);
+	DMR = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
 
 	return true;
 }
@@ -123,12 +123,12 @@ void	sceneMain::Render()
 	if( Renderflg )
 	{
 		//Deferred
-		screen -> Render(shader,"DeferredDir");
+		screen -> Render( 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, shader,"DeferredDir");
 
 		//G-Buffer
-		color -> Render( 0,0,320,180,0,0,1280,720 );
-		normal -> Render( 320,0,320,180,0,0,1280,720 );
-		DMR -> Render( 640,0,320,180,0,0,1280,720 );
+		//color -> Render( 0,0,320,180,0,0,1280,720 );
+		//normal -> Render( 320,0,320,180,0,0,1280,720 );
+		//DMR -> Render( 640,0,320,180,0,0,1280,720 );
 	}
 	else
 	{
