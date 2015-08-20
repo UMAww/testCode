@@ -24,10 +24,18 @@ private:
 	iex2DObj* screen;
 	iex2DObj* color;
 	iex2DObj* normal;
-	iex2DObj* DMR;	//D:Depth, M:Metalness, R:Roughness
+	iex2DObj* Depth;
+	iex2DObj* MR;	//M:Metalness, R:Roughness
 
 	static const int CUBE_SIZE = 512;
 	static const int MIPMAP_NUM;
+	static const int PLIGHT_NUM = 10;
+
+	Vector3 pLight_Pos[PLIGHT_NUM];
+	Vector3 pLight_Color[PLIGHT_NUM];
+	float pLight_Range[PLIGHT_NUM];
+	int light_index;
+
 public:
 	~sceneMain();
 	//	èâä˙âª
@@ -42,6 +50,9 @@ public:
 	void StaticCreateCubeMap( char* filename );
 
 	void CreateG_Buffer();
+
+	void AddPoint_Light( const Vector3& pos, const Vector3& color, float range );
+	void DelPoint_Light();
 };
 
 

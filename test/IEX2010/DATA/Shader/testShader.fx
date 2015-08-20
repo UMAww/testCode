@@ -19,6 +19,14 @@ float3 ViewPos;			//カメラ位置
 float3 DirLightVec = { -1, 0, 0 };
 float3 DirLightColor = { 1.0f, 1.0f, 1.0f };
 
+//-----------------------------------------------------------------------------------------------------------
+//		点光源
+//-----------------------------------------------------------------------------------------------------------
+float3 pLight_Pos[10];
+float3 pLight_Color[10];
+float pLight_Range[10];
+int pLight_Num= 0;
+
 //------------------------------------------------------
 //		テクスチャサンプラー	
 //------------------------------------------------------
@@ -102,7 +110,7 @@ struct VS_PBR
 {
 	float4 Pos		: POSITION;
 	float2 Tex		: TEXCOORD0;
-	float3 wPos		: TEXCOORD1;
+	float4 wPos		: TEXCOORD1;
 	float3 Eye		: TEXCOORD2;
 	float3 Light	: TEXCOORD3;
 };
@@ -228,7 +236,7 @@ VS_PBR VS_testPBR( VS_INPUT In )
 	Out.Light.y = dot( vy, -DirLightVec );
 	Out.Light.z = dot( N, -DirLightVec );
 
-	float3 E = Out.wPos - ViewPos;
+	float3 E = Out.wPos.xyz - ViewPos;
 	Out.Eye.x = dot( vx, E );
 	Out.Eye.y = dot( vy, E );
 	Out.Eye.z = dot( N, E );
@@ -251,16 +259,33 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 
 	//Diffuse
 	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
-	float3 Diffuse = Albedo * DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
+	float3 Diffuse = Albedo.rgb * DirLightColor * OrenNayar( N, L, E, Roughness );	//OrenNaya
 
 	//Specular
 	float2 EnvBRDF;
 	float F0 = Metalness;
-	float3 SpecularColor = lerp( float3( 1, 1, 1 ), Albedo, Metalness );
+	float3 SpecularColor = lerp( float3( 1, 1, 1 ), Albedo.rgb, Metalness );
 	float3 Specular = SpecularColor * CookTorrance( N, L, E, Roughness, F0, EnvBRDF );
 
+	//PointLight
+	for (int i = 0; i < pLight_Num; i++)
+	{
+		float4 pl_pos = float4(pLight_Pos[i], 1);
+		pl_pos = mul(pl_pos, TransMatrix);
+		float3 v = In.wPos.xyz - pl_pos.xyz;
+		float d = length(v);
+
+		if (d > pLight_Range[i]) continue;
+
+		v = normalize(v);
+		float insensity = max(0.0, 1.0 - (d / pLight_Range[i]));
+
+		Diffuse += pLight_Color[i] * OrenNayar(N, -v, E, R) * insensity;
+		Specular += pLight_Color[i] * CookTorrance(N, -v, E, R, F0, EnvBRDF) * insensity;
+	}
+
 	//DiffuseIBL
-	float3 DiffuseIBL = Albedo * DirLightColor * texCUBEbias( CubeSamp, float4( N, (MaxMipMaplevel+1)/2) ).rgb;
+	float3 DiffuseIBL = Albedo.rgb * DirLightColor * texCUBEbias( CubeSamp, float4( N, (MaxMipMaplevel+1)/2) ).rgb;
 
 	//SpecularIBL
 	//float3 SpecularIBL = texCUBEbias( CubeSamp, float4( R, Roughness*(MaxMipMaplevel+1)) ).rgb * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
@@ -358,7 +383,8 @@ struct PS_G_BUFFER
 {
 	float4 Color	: COLOR0;
 	float4 Normal	: COLOR1;
-	float4 DMR		: COLOR2;	//Depth,Metalness,Roughness
+	float4 Depth	: COLOR2;
+	float4 MR		: COLOR3;	//Metalness,Roughenss
 };
 
 VS_G_BUFFER VS_CreateG_Buffer( VS_INPUT In )
@@ -400,7 +426,8 @@ PS_G_BUFFER PS_CreateG_Buffer( VS_G_BUFFER In ) : COLOR
 	//float R = tex2D( RoughnessSamp, In.Tex ).r;
 	float M = Metalness;
 	float R = Roughness;
-	Out.DMR = float4( D, M, R, 1 );
+	Out.Depth = float4( D.rrr, 1 );
+	Out.MR = float4( M, R, 1, 1 );
 
 	return Out;
 }
@@ -439,10 +466,22 @@ sampler ColorSamp = sampler_state
 	AddressV = Wrap;
 };
 
-texture DMRMap;	// D:Depth, M:Metalness, R:Roguhness
-sampler DMRSamp = sampler_state
+texture DepthMap;
+sampler DepthSamp = sampler_state
 {
-	Texture = <DMRMap>;
+	Texture = <DepthMap>;
+	MinFilter = LINEAR;
+	MagFilter = LINEAR;
+	MipFilter = NONE;
+
+	AddressU = Wrap;
+	AddressV = Wrap;
+};
+
+texture MRMap;	// M:Metalness, R:Roguhness
+sampler MRSamp = sampler_state
+{
+	Texture = <MRMap>;
 	MinFilter = LINEAR;
 	MagFilter = LINEAR;
 	MipFilter = NONE;
@@ -461,7 +500,7 @@ float4 ConvertViewPosition(float4 position, float2 Tex)
 {
 	position.xy = position.xy * 2.0 - 1.0;
 	position.y = -position.y;
-	position.z = tex2D(DMRSamp, Tex).r;
+	position.z = tex2D(DepthSamp, Tex).r;
 	position = mul(position, InvProjection);
 	position.xyz /= position.w;
 
@@ -480,30 +519,50 @@ float4 PS_DeferredDirLight( VS_2D In ) : COLOR0
 {
 	float4 Out = (float4)1;
 
+	float D = tex2D( DepthSamp, In.Tex ).r;
+	if( D < 0.00001 ) return tex2D( ColorSamp,In.Tex );
+
 	float4 Albedo = tex2D( ColorSamp, In.Tex );
 	Albedo = pow( Albedo, gamma );
 
 	//正規化されたスクリーン座標をビュー空間へ変換
 	float4 position = ConvertViewPosition(float4(In.Tex, 0, 1), In.Tex);
-	position = mul( position, TransMatrix );
+	//position = mul( position, matView );
 	float3 E = normalize( position.xyz - ViewPos );
 	float3 L = normalize( position.xyz - DirLightVec );
-	float3 N = tex2D(NormalSamp, In.Tex).xyz * 2.0 - 1.0;
-	//N = normalize( N );
-	float3 Ref = reflect(E, N);
+	float3 N = tex2D( NormalSamp, In.Tex ).xyz * 2.0 - 1.0;
+	N = normalize( N );
+	float3 Ref = reflect( E, N );
 
-	float M = tex2D( DMRSamp, In.Tex ).g;
-	float R = tex2D( DMRSamp, In.Tex ).b;
+	float M = tex2D( MRSamp, In.Tex ).r;
+	float R = tex2D( MRSamp, In.Tex ).g;
 
 	//Diffuse
 	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
-	float3 Diffuse = Albedo * DirLightColor * OrenNayar(N, L, E, R);	//OrenNaya
+	float3 Diffuse = Albedo * DirLightColor * OrenNayar( N, L, E, R );	//OrenNaya
 
 	//Specular
 	float2 EnvBRDF;
 	float F0 = M;
 	float3 SpecularColor = lerp(float3(1, 1, 1), Albedo, M);
 	float3 Specular = SpecularColor * CookTorrance(N, L, E, R, F0, EnvBRDF);
+
+	//PointLight
+	for( int i = 0; i < pLight_Num; i++ )
+	{
+		float4 pl_pos = float4( pLight_Pos[i], 1 );
+		pl_pos = mul( pl_pos, matView );
+		float3 v = position.xyz - pl_pos.xyz;
+		float d = length( v );
+		
+		if( d > pLight_Range[i] ) continue;
+
+		v = normalize( v );
+		float insensity = max( 0.0, 1.0 - ( d / pLight_Range[i] ) );
+
+		Diffuse += pLight_Color[i] * OrenNayar(N, -v, E, R) * insensity;
+		Specular += pLight_Color[i] * CookTorrance(N, -v, E, R, F0, EnvBRDF) * insensity;
+	}
 
 	//DiffuseIBL
 	float3 DiffuseIBL = Albedo * DirLightColor * texCUBEbias(CubeSamp, float4(N, (MaxMipMaplevel + 1) / 2)).rgb;
@@ -527,9 +586,9 @@ technique DeferredDir
 		AlphaBlendEnable = true;
 		BlendOp = Add;
 		SrcBlend = SrcAlpha;
-		DestBlend = InvSrcAlpha;
-		CullMode = CCW;
-		ZEnable = true;
+		DestBlend = One;
+		CullMode = None;
+		ZEnable = false;
 
 		VertexShader = compile vs_3_0 VS_Deferred();
 		PixelShader  = compile ps_3_0 PS_DeferredDirLight();

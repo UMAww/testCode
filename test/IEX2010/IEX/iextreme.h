@@ -639,9 +639,11 @@ public:
 	void SetValue( char* name, D3DXVECTOR4& v );
 
 	void SetValue( char* name, Vector3* v );
+	void SetValue( char* name, Vector3* v, int num );
 	void SetValue( char* name, Vector3& v );
 
 	void SetValue( char* name, float f );
+	void SetValue( char* name, float* f, int num );
 	void SetValue( char* name, int d );
 	void SetValue( char* name, DWORD d );
 };

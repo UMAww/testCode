@@ -54,7 +54,6 @@ bool sceneMain::Initialize()
 
 	Renderflg = true;
 
-
 	//シェーダー関係
 	shader->SetValue("MaxMipMaplevel", MIPMAP_NUM);
 	//キューブマップ作成
@@ -64,7 +63,10 @@ bool sceneMain::Initialize()
 	screen = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	color = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
 	normal = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
-	DMR = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
+	Depth = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_FLOAT );
+	MR = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
+
+	light_index = 0;
 
 	return true;
 }
@@ -80,7 +82,8 @@ sceneMain::~sceneMain()
 	if( screen ){ delete screen; screen = nullptr; }
 	if( color ){ delete color; color = nullptr; }
 	if( normal ){ delete normal; normal = nullptr; }
-	if( DMR ){ delete DMR; DMR = nullptr; }
+	if( Depth ){ delete Depth; Depth = nullptr; }
+	if( MR ){ delete MR; MR = nullptr; }
 
 }
 
@@ -97,6 +100,8 @@ void	sceneMain::Update()
 	camera -> Update( sphere->GetPos() );
 
 	if( KEY_Get( KEY_ENTER ) == 3 ) Renderflg = !Renderflg;
+
+	if( KEY_Get( KEY_SPACE ) == 3 ) AddPoint_Light( Vector3( rand()%10, 2, rand()%10 ), Vector3( rand()%2, rand()%2, rand()%2 ), 10.0f );
 }
 
 //*****************************************************************************************************************************
@@ -120,15 +125,21 @@ void	sceneMain::Render()
 	D3DXMatrixInverse( &invProj, 0, &matProjection );
 	shader -> SetValue("InvProjection", invProj );
 
+	shader -> SetValue("pLight_Num", light_index );
+	shader -> SetValue("pLight_Pos", pLight_Pos, light_index );
+	shader -> SetValue("pLight_Color", pLight_Color, light_index );
+	shader -> SetValue("pLight_Range", pLight_Range, light_index );
+
 	if( Renderflg )
 	{
 		//Deferred
 		screen -> Render( 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, shader,"DeferredDir");
 
 		//G-Buffer
-		//color -> Render( 0,0,320,180,0,0,1280,720 );
-		//normal -> Render( 320,0,320,180,0,0,1280,720 );
-		//DMR -> Render( 640,0,320,180,0,0,1280,720 );
+		color -> Render( 0,0,320,180,0,0,1280,720 );
+		normal -> Render( 320,0,320,180,0,0,1280,720 );
+		Depth -> Render( 640,0,320,180,0,0,1280,720 );
+		MR -> Render( 960, 0, 320,  180, 0, 0, 1280, 720 );
 	}
 	else
 	{
@@ -152,7 +163,8 @@ void sceneMain::CreateG_Buffer()
 {
 	color -> RenderTarget();
 	normal -> RenderTarget( 1 );
-	DMR -> RenderTarget( 2 );
+	Depth -> RenderTarget( 2 );
+	MR -> RenderTarget( 3 );
 
 	camera -> Clear();
 
@@ -166,10 +178,12 @@ void sceneMain::CreateG_Buffer()
 	iexSystem::GetDevice()->SetRenderTarget( 0, back );
 	iexSystem::GetDevice()->SetRenderTarget( 1, NULL );
 	iexSystem::GetDevice()->SetRenderTarget( 2, NULL );
+	iexSystem::GetDevice()->SetRenderTarget( 3, NULL );
 
 	shader -> SetValue("ColorMap", color );
 	shader -> SetValue("NormalMap", normal );
-	shader -> SetValue("DMRMap", DMR );
+	shader -> SetValue("DepthMap", Depth );
+	shader -> SetValue("MRMap", MR );
 
 }
 
@@ -262,4 +276,22 @@ void sceneMain::StaticCreateCubeMap( char* filename )
 	shader->SetValue("CubeMap", StaticCubeTex );
 
 	StaticCubeTex->Release();
+}
+
+void sceneMain::AddPoint_Light( const Vector3& pos, const Vector3& color, float range )
+{
+	//
+	if( light_index == PLIGHT_NUM ) return;
+
+	pLight_Pos[light_index] = pos;
+	pLight_Color[light_index] = color;
+	pLight_Range[light_index] = range;
+
+	light_index++;
+}
+
+void sceneMain::DelPoint_Light()
+{
+	light_index--;
+	if( light_index < 0 ) light_index = 0;
 }

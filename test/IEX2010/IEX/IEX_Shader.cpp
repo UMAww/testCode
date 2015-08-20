@@ -69,10 +69,12 @@ void iexShader::SetValue( char* name, D3DXVECTOR4* v ){ m_pShader->SetVector( na
 void iexShader::SetValue( char* name, D3DXVECTOR4& v ){ m_pShader->SetVector( name, &v ); }
 
 void iexShader::SetValue( char* name, Vector3* v ){ m_pShader->SetFloatArray( name, (float*)v, 3 ); }
+void iexShader::SetValue( char* name, Vector3* v, int num ){ m_pShader->SetFloatArray( name, (float*)v, 3*num ); }
 void iexShader::SetValue( char* name, Vector3& v ){ m_pShader->SetFloatArray( name, (float*)&v, 3 ); }
 
 
 void iexShader::SetValue( char* name, float f ){ m_pShader->SetFloat( name, f ); }
+void iexShader::SetValue( char* name, float* f, int num ){ m_pShader->SetFloatArray( name, f, num ); }
 void iexShader::SetValue( char* name, int d ){ m_pShader->SetInt( name, d ); }
 void iexShader::SetValue( char* name, DWORD d ){ m_pShader->SetValue( name, &d, 4 ); }
 
