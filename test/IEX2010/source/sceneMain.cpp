@@ -101,7 +101,7 @@ void	sceneMain::Update()
 
 	if( KEY_Get( KEY_ENTER ) == 3 ) Renderflg = !Renderflg;
 
-	if( KEY_Get( KEY_SPACE ) == 3 ) AddPoint_Light( Vector3( rand()%10, 2, rand()%10 ), Vector3( rand()%2, rand()%2, rand()%2 ), 10.0f );
+	if( KEY_Get( KEY_SPACE ) == 3 ) AddPoint_Light( Vector3( rand()%50, 2, rand()%50 ), Vector3( rand()%2, rand()%2, rand()%2 ), 10.0f );
 }
 
 //*****************************************************************************************************************************
@@ -120,9 +120,8 @@ void	sceneMain::Render()
 	//	‰æ–ÊƒNƒŠƒA
 	camera -> Clear();
 
-	shader -> SetValue("matView", matView );
 	Matrix invProj;
-	D3DXMatrixInverse( &invProj, 0, &matProjection );
+	D3DXMatrixInverse( &invProj, NULL, &matProjection );
 	shader -> SetValue("InvProjection", invProj );
 
 	shader -> SetValue("pLight_Num", light_index );
@@ -133,7 +132,7 @@ void	sceneMain::Render()
 	if( Renderflg )
 	{
 		//Deferred
-		screen -> Render( 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, shader,"DeferredDir");
+		screen -> Render( 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, shader,"Deferred");
 
 		//G-Buffer
 		color -> Render( 0,0,320,180,0,0,1280,720 );

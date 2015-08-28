@@ -63,11 +63,15 @@ void Camera::Clear( long color )
 {
 	view -> Activate();
 	view -> Clear( color );
+
+	shader -> SetValue("matView", matView );
 }
 
 void Camera::ClearScreen( long color )
 {
 	view -> Clear();
+
+	shader -> SetValue("matView", matView );
 }
 
 void Camera::Set( const Vector3& pos, const Vector3& target )

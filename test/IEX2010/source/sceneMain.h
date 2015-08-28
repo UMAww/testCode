@@ -29,7 +29,7 @@ private:
 
 	static const int CUBE_SIZE = 512;
 	static const int MIPMAP_NUM;
-	static const int PLIGHT_NUM = 10;
+	static const int PLIGHT_NUM = 20;
 
 	Vector3 pLight_Pos[PLIGHT_NUM];
 	Vector3 pLight_Color[PLIGHT_NUM];

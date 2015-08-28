@@ -22,9 +22,9 @@ float3 DirLightColor = { 1.0f, 1.0f, 1.0f };
 //-----------------------------------------------------------------------------------------------------------
 //		点光源
 //-----------------------------------------------------------------------------------------------------------
-float3 pLight_Pos[10];
-float3 pLight_Color[10];
-float pLight_Range[10];
+float3 pLight_Pos[20];
+float3 pLight_Color[20];
+float pLight_Range[20];
 int pLight_Num= 0;
 
 //------------------------------------------------------
@@ -269,19 +269,17 @@ float4 PS_testPBR( VS_PBR In ) : COLOR0
 
 	//PointLight
 	for (int i = 0; i < pLight_Num; i++)
-	{
-		float4 pl_pos = float4(pLight_Pos[i], 1);
-		pl_pos = mul(pl_pos, TransMatrix);
-		float3 v = In.wPos.xyz - pl_pos.xyz;
+	{		
+		float3 v = In.wPos.xyz - pLight_Pos[i];
 		float d = length(v);
 
-		if (d > pLight_Range[i]) continue;
+		if ( d > pLight_Range[i] ) continue;
 
-		v = normalize(v);
-		float insensity = max(0.0, 1.0 - (d / pLight_Range[i]));
+		v = normalize( v );
+		float insensity = max( 0.0, 1.0 - (d / pLight_Range[i]) );
 
-		Diffuse += pLight_Color[i] * OrenNayar(N, -v, E, R) * insensity;
-		Specular += pLight_Color[i] * CookTorrance(N, -v, E, R, F0, EnvBRDF) * insensity;
+		Diffuse += pLight_Color[i] * OrenNayar(N, v, E, Roughness) * insensity;
+		Specular += pLight_Color[i] * CookTorrance(N, v, E, Roughness, F0, EnvBRDF) * insensity;
 	}
 
 	//DiffuseIBL
@@ -395,12 +393,13 @@ VS_G_BUFFER VS_CreateG_Buffer( VS_INPUT In )
 	Out.ProjectionPos = Out.Position;
 	Out.Tex = In.Tex;
 	Out.Normal = mul( In.Normal, (float3x3)TransMatrix );
+	Out.Normal = mul( Out.Normal, (float3x3)matView );
 	Out.Normal = normalize( Out.Normal );
-	float3 Y = { 0, 1, 0.001 };
-	Out.Tangent = cross(Y, Out.Normal);
-	Out.Tangent = normalize(Out.Tangent);
-	Out.BiNormal = cross(Out.Tangent, Out.Normal);
-	Out.BiNormal - normalize(Out.BiNormal);
+	float3 Y = { 0, 1, 0.00001 };
+	Out.Tangent = cross( Y, Out.Normal );
+	Out.Tangent = normalize( Out.Tangent );
+	Out.BiNormal = cross( Out.Tangent, Out.Normal );
+	Out.BiNormal = normalize( Out.BiNormal );
 
 	return Out;
 }
@@ -496,14 +495,14 @@ struct VS_2D
 	float2 Tex		: TEXCOORD0;
 };
 
-float4 ConvertViewPosition(float4 position, float2 Tex)
+float4 ConvertViewPosition( in float2 Tex )
 {
-	position.xy = position.xy * 2.0 - 1.0;
-	position.y = -position.y;
-	position.z = tex2D(DepthSamp, Tex).r;
-	position = mul(position, InvProjection);
+	float4 screen = 1;
+	screen.xy = Tex * 2.0 - 1.0;
+	screen.y = -screen.y;
+	screen.z = tex2D(DepthSamp, Tex).r;
+	float4 position = mul( screen, InvProjection );
 	position.xyz /= position.w;
-
 	return position;
 }
 
@@ -526,16 +525,17 @@ float4 PS_DeferredDirLight( VS_2D In ) : COLOR0
 	Albedo = pow( Albedo, gamma );
 
 	//正規化されたスクリーン座標をビュー空間へ変換
-	float4 position = ConvertViewPosition(float4(In.Tex, 0, 1), In.Tex);
-	//position = mul( position, matView );
-	float3 E = normalize( position.xyz - ViewPos );
-	float3 L = normalize( position.xyz - DirLightVec );
-	float3 N = tex2D( NormalSamp, In.Tex ).xyz * 2.0 - 1.0;
+	float4 position = ConvertViewPosition( In.Tex );
+	float3 E = normalize( position.xyz );
+	float3 DirLight = mul( DirLightVec, (float3x3)matView );
+	float3 L = normalize( position.xyz - DirLight );
+	float3 N = tex2D( NormalSamp, In.Tex ).rgb * 2.0 - 1.0;
 	N = normalize( N );
 	float3 Ref = reflect( E, N );
+	//float3 Ref = normalize( E + 2 * dot( -E, N ) * N );
 
-	float M = tex2D( MRSamp, In.Tex ).r;
-	float R = tex2D( MRSamp, In.Tex ).g;
+	float M = saturate( tex2D( MRSamp, In.Tex ).r );
+	float R = saturate( tex2D( MRSamp, In.Tex ).g );
 
 	//Diffuse
 	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
@@ -544,8 +544,8 @@ float4 PS_DeferredDirLight( VS_2D In ) : COLOR0
 	//Specular
 	float2 EnvBRDF;
 	float F0 = M;
-	float3 SpecularColor = lerp(float3(1, 1, 1), Albedo, M);
-	float3 Specular = SpecularColor * CookTorrance(N, L, E, R, F0, EnvBRDF);
+	float3 SpecularColor = lerp( float3(1, 1, 1), Albedo, M );
+	float3 Specular = SpecularColor * CookTorrance( N, L, E, R, F0, EnvBRDF );
 
 	//PointLight
 	for( int i = 0; i < pLight_Num; i++ )
@@ -560,26 +560,26 @@ float4 PS_DeferredDirLight( VS_2D In ) : COLOR0
 		v = normalize( v );
 		float insensity = max( 0.0, 1.0 - ( d / pLight_Range[i] ) );
 
-		Diffuse += pLight_Color[i] * OrenNayar(N, -v, E, R) * insensity;
-		Specular += pLight_Color[i] * CookTorrance(N, -v, E, R, F0, EnvBRDF) * insensity;
+		Diffuse += pLight_Color[i] * OrenNayar( N, -v, E, R ) * insensity;
+		Specular += pLight_Color[i] * CookTorrance( N, -v, E, (R+0.5)/2, F0, EnvBRDF ) * insensity;
 	}
 
 	//DiffuseIBL
-	float3 DiffuseIBL = Albedo * DirLightColor * texCUBEbias(CubeSamp, float4(N, (MaxMipMaplevel + 1) / 2)).rgb;
+	float3 DiffuseIBL = Albedo * DirLightColor * texCUBEbias( CubeSamp, float4(N, (MaxMipMaplevel + 1) / 2) ).rgb;
 
 	//SpecularIBL
 	//float3 SpecularIBL = texCUBEbias( CubeSamp, float4( Ref, R*(MaxMipMaplevel+1)) ).rgb * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
-	float3 SpecularIBL = texCUBEbias(CubeSamp, float4(Ref, R*(MaxMipMaplevel + 1))).rgb * SpecularColor;
+	float3 SpecularIBL = texCUBEbias(CubeSamp, float4( Ref, R*(MaxMipMaplevel + 1)) ).rgb * SpecularColor;
 
-	Out.rgb = lerp(Diffuse, Specular, M);			//直接光
-	Out.rgb += lerp(DiffuseIBL, SpecularIBL, M);	//間接光
+	Out.rgb = lerp( Diffuse, Specular, M );			//直接光
+	Out.rgb += lerp( DiffuseIBL, SpecularIBL, M );	//間接光
 	//Out.rgb += DiffuseIBL + SpecularIBL;
 
 	Out.rgb = pow( Out.rgb, 1.0f/gamma );
 	return Out;
 }
 
-technique DeferredDir
+technique Deferred
 {
 	pass P0
 	{

@@ -48,7 +48,7 @@ void Object::Init( char* filename )
 void Object::Update()
 {
 	//ˆÚ“®
-	//Move();
+	Move();
 
 	//angle.y += 0.01f;
 	if( KEY_Get( KEY_A ) ){ roughness += 0.003f; }
