@@ -68,22 +68,27 @@ bool sceneMain::Initialize()
 
 	light_index = 0;
 
+	//Post-Effect
+	//SSAO
+	SSAO = new iex2DObj(iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET);
+
 	return true;
 }
 
 sceneMain::~sceneMain()
 {
 
-	if( camera ){ delete camera; camera = nullptr; }
-	if( sky ){ delete sky; sky = nullptr; }
-	if( stage ){ delete stage; stage = nullptr; }
-	if( box ){ delete box; box = nullptr; }
-	if( sphere ){ delete sphere; sphere = nullptr; }
-	if( screen ){ delete screen; screen = nullptr; }
-	if( color ){ delete color; color = nullptr; }
-	if( normal ){ delete normal; normal = nullptr; }
-	if( Depth ){ delete Depth; Depth = nullptr; }
-	if( MR ){ delete MR; MR = nullptr; }
+	DeleteObj( camera );
+	DeleteObj( sky );
+	DeleteObj( stage );
+	DeleteObj( box );
+	DeleteObj( sphere );
+	DeleteObj( screen );
+	DeleteObj( color );
+	DeleteObj( normal );
+	DeleteObj( Depth );
+	DeleteObj( MR );
+	DeleteObj( SSAO );
 
 }
 
@@ -101,7 +106,7 @@ void	sceneMain::Update()
 
 	if( KEY_Get( KEY_ENTER ) == 3 ) Renderflg = !Renderflg;
 
-	if( KEY_Get( KEY_SPACE ) == 3 ) AddPoint_Light( Vector3( rand()%50, 2, rand()%50 ), Vector3( rand()%2, rand()%2, rand()%2 ), 10.0f );
+	if( KEY_Get( KEY_SPACE ) == 3 ) AddPoint_Light( Vector3( rand()%50, 2.0f, rand()%50 ), Vector3( rand()%2, rand()%2, rand()%2 ), 10.0f );
 }
 
 //*****************************************************************************************************************************
@@ -116,13 +121,11 @@ void	sceneMain::Render()
 
 	CreateG_Buffer();
 
+	CreateSSAO();
+
 	char str[1280];
 	//	‰æ–ÊƒNƒŠƒA
 	camera -> Clear();
-
-	Matrix invProj;
-	D3DXMatrixInverse( &invProj, NULL, &matProjection );
-	shader -> SetValue("InvProjection", invProj );
 
 	shader -> SetValue("pLight_Num", light_index );
 	shader -> SetValue("pLight_Pos", pLight_Pos, light_index );
@@ -134,11 +137,15 @@ void	sceneMain::Render()
 		//Deferred
 		screen -> Render( 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, shader,"Deferred");
 
+		//PostEffect
+		SSAO -> Render(0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, RS_MUL, 0xFFFFFFFF);
+
 		//G-Buffer
 		color -> Render( 0,0,320,180,0,0,1280,720 );
 		normal -> Render( 320,0,320,180,0,0,1280,720 );
 		Depth -> Render( 640,0,320,180,0,0,1280,720 );
 		MR -> Render( 960, 0, 320,  180, 0, 0, 1280, 720 );
+		SSAO -> Render( 0, 180, 320, 180, 0, 0, 1280, 720 );
 	}
 	else
 	{
@@ -149,12 +156,17 @@ void	sceneMain::Render()
 		stage->Render(shader, "pbr_test");
 		box->Render("pbr_test");
 		sphere->Render("pbr_test");
+
+		//PostEffect
+		SSAO -> Render(0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, RS_MUL, 0xFFFFFFFF);
 	}
 
+#ifdef _DEBUG
 	sprintf_s( str, "Roughness:%1.3f", box->GetRoughness() );
 	IEX_DrawText( str, 1000,80,2000,20, 0xFFFFFF00 );
 	sprintf_s( str, "Metalness:%1.3f", box->GetMetalness() );
 	IEX_DrawText( str, 1000,100,2000,20, 0xFFFFFF00 );
+#endif
 
 }
 
@@ -183,6 +195,9 @@ void sceneMain::CreateG_Buffer()
 	shader -> SetValue("NormalMap", normal );
 	shader -> SetValue("DepthMap", Depth );
 	shader -> SetValue("MRMap", MR );
+
+	shader2D -> SetValue("NormalMap", normal );
+	shader2D -> SetValue("DepthMap", Depth );
 
 }
 
@@ -275,6 +290,23 @@ void sceneMain::StaticCreateCubeMap( char* filename )
 	shader->SetValue("CubeMap", StaticCubeTex );
 
 	StaticCubeTex->Release();
+}
+
+void sceneMain::CreateSSAO()
+{
+	SSAO -> RenderTarget();
+
+	camera -> Clear();
+
+	Matrix invProj;
+	D3DXMatrixInverse( &invProj, NULL, &matProjection );
+	shader -> SetValue("InvProjection", invProj );
+	shader2D -> SetValue("InvProjection", invProj );
+
+	SSAO -> Render( shader2D, "ssao" );
+
+	iexSystem::GetDevice()->SetRenderTarget( 0, back );
+
 }
 
 void sceneMain::AddPoint_Light( const Vector3& pos, const Vector3& color, float range )

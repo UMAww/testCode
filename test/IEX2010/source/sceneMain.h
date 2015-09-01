@@ -8,6 +8,8 @@
 #include	"Object.h"
 #include	"Character.h"
 
+#define DeleteObj(p){ if( p != nullptr ){ delete p; p = nullptr; }}
+
 class	sceneMain : public Scene
 {
 private:
@@ -36,6 +38,9 @@ private:
 	float pLight_Range[PLIGHT_NUM];
 	int light_index;
 
+	//Post-Effect
+	iex2DObj* SSAO;
+
 public:
 	~sceneMain();
 	//	èâä˙âª
@@ -50,6 +55,7 @@ public:
 	void StaticCreateCubeMap( char* filename );
 
 	void CreateG_Buffer();
+	void CreateSSAO();
 
 	void AddPoint_Light( const Vector3& pos, const Vector3& color, float range );
 	void DelPoint_Light();

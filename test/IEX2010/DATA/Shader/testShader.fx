@@ -10,6 +10,7 @@ float4x4 Projection;	//	投影変換行列
 float4x4 InvProjection;	//	逆投影変換行列
 float4x4 TransMatrix;	//	ワールド変換行列
 float4x4 matView;		//	カメラ変換行列
+float4x4 matProjection;
 
 float3 ViewPos;			//カメラ位置
 

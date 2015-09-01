@@ -65,6 +65,10 @@ void Camera::Clear( long color )
 	view -> Clear( color );
 
 	shader -> SetValue("matView", matView );
+	shader -> SetValue("matProjection", matProjection );
+
+	shader2D -> SetValue("matView", matView );
+	shader2D -> SetValue("matProjection", matProjection );
 }
 
 void Camera::ClearScreen( long color )
@@ -72,6 +76,10 @@ void Camera::ClearScreen( long color )
 	view -> Clear();
 
 	shader -> SetValue("matView", matView );
+	shader -> SetValue("matProjection", matProjection );
+
+	shader2D -> SetValue("matView", matView );
+	shader2D -> SetValue("matProjection", matProjection );
 }
 
 void Camera::Set( const Vector3& pos, const Vector3& target )

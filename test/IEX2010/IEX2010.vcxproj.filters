@@ -143,5 +143,8 @@
     <FxCompile Include="DATA\Shader\testShader.fx">
       <Filter>シェーダー</Filter>
     </FxCompile>
+    <FxCompile Include="DATA\Shader\PostEffects.fx">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
