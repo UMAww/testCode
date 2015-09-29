@@ -9,6 +9,7 @@
 
 iexShader*	shader;
 iexShader*	shader2D;
+iexShader*	shaderD;
 
 //*****************************************************************************************************************************
 //
@@ -33,6 +34,7 @@ void	SYSTEM_Initialize()
 	shader = new iexShader("DATA\\SHADER\\testShader.fx");
 	//shader2D = new iexShader("DATA\\SHADER\\2D.fx");
 	shader2D = new iexShader("DATA\\SHADER\\PostEffects.fx");
+	shaderD = new iexShader("DATA/SHADER/Deferred.fx");
 	//	パーティクルシステム初期化
 	iexParticle::Initialize("DATA\\PARTICLE.PNG", 10000 );
 }
@@ -41,6 +43,7 @@ void	SYSTEM_Release()
 {
 	delete	shader;
 	delete	shader2D;
+	delete	shaderD;
 	IEX_Release();
 }
 

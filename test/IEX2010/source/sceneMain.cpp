@@ -180,8 +180,8 @@ void sceneMain::CreateG_Buffer()
 	camera -> Clear();
 
 	sky->Render();
-	shader->SetValue("Metalness", 0.0f);
-	shader->SetValue("Roughness", 1.0f);
+	//shader->SetValue("Metalness", 0.0f );
+	//shader->SetValue("Roughness", 1.0f );
 	stage->Render(shader, "create_gbuffer");
 	box->Render("create_gbuffer");
 	sphere->Render("create_gbuffer");
