@@ -27,7 +27,7 @@ public:
 	void Init( char* filname );
 	void Update();
 	void Render();
-	void Render( char* name );
+	void Render(iexShader* shader, char* name );
 
 	float GetRoughness(){ return this->roughness; }
 	float GetMetalness(){ return this->metalness; }

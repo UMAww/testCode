@@ -338,50 +338,52 @@ VS_2D VS_Deferred( VS_INPUT In )
 float3 DirLightVec;
 float3 DirLightColor;
 
-PS_Deferred PS_DeferredDirLight( VS_2D In ) : COLOR
+float4 PS_DeferredDirLight(VS_2D In) : COLOR0
 {
-	PS_Deferred Out = (PS_Deferred)1;
+	float4 Out = (float4)1;
 
-	float D = tex2D( DepthSamp, In.Tex ).r;
-	//if( D < 0.00001 ) return tex2D( ColorSamp,In.Tex );
+	float D = tex2D(DepthSamp, In.Tex).r;
+	if (D < 0.00001) return tex2D(ColorSamp,In.Tex);
 
-	float4 Albedo = tex2D( ColorSamp, In.Tex );
-	Albedo = pow( Albedo, gamma );
+	float4 Albedo = tex2D(ColorSamp, In.Tex);
+	Albedo = pow(Albedo, gamma);
 
 	//正規化されたスクリーン座標をビュー空間へ変換
-	float4 position = ConvertViewPosition( In.Tex );
-	float3 E = normalize( position.xyz );
-	float3 DirLight = mul( DirLightVec, (float3x3)matView );
-	float3 L = normalize( position.xyz - DirLight );
-	float3 N = tex2D( NormalSamp, In.Tex ).rgb * 2.0 - 1.0;
-	N = normalize( N );
-	float3 Ref = reflect( E, N );
+	float4 position = ConvertViewPosition(In.Tex);
+	float3 E = normalize(position.xyz);
+	float3 DirLight = mul(DirLightVec, (float3x3)matView);
+	float3 L = normalize(position.xyz - DirLight);
+	float3 N = tex2D(NormalSamp, In.Tex).rgb * 2.0 - 1.0;
+	N = normalize(N);
+	float3 Ref = reflect(E, N);
 	//float3 Ref = normalize( E + 2 * dot( -E, N ) * N );
 
-	float M = saturate( tex2D( MRSamp, In.Tex ).r );
-	float R = saturate( tex2D( MRSamp, In.Tex ).g );
+	float M = saturate(tex2D(MRSamp, In.Tex).r);
+	float R = saturate(tex2D(MRSamp, In.Tex).g);
 
 	//Diffuse
 	//float3 Diffuse = DirLightColor * NormalizeLambert( N, L );		//正規化Lambert
-	float3 Diffuse = Albedo * DirLightColor * OrenNayar( N, L, E, R );	//OrenNaya
+	float3 Diffuse = OrenNayar(N, L, E, R);	//OrenNaya
 
-	//Specular
-	float F0 = M;
-	float3 SpecularColor = lerp( float3(1, 1, 1), Albedo, M );
-	float3 Specular = SpecularColor * CookTorrance( N, L, E, R, SpecularColor );
+	
+	float3 SpecularColor = lerp(float3(1, 1, 1), Albedo, M);
+	float3 Specular = SpecularColor * CookTorrance(N, L, E, R, SpecularColor);
 
 	//DiffuseIBL
-	float3 DiffuseIBL = texCUBEbias( CubeSamp, float4(N, (MaxMipMaplevel + 1) / 2) ).rgb;
+	float3 DiffuseIBL = Albedo * texCUBEbias(CubeSamp, float4(N, (MaxMipMaplevel + 1) / 2)).rgb;
 
 	//SpecularIBL
 	//float3 SpecularIBL = texCUBEbias( CubeSamp, float4( Ref, R*(MaxMipMaplevel+1)) ).rgb * ( SpecularColor * EnvBRDF.x + EnvBRDF.y );
-	float3 SpecularIBL = texCUBEbias(CubeSamp, float4( Ref, R*(MaxMipMaplevel + 1)) ).rgb * SpecularColor;
+	float3 SpecularIBL = SpecularColor * texCUBEbias(CubeSamp, float4(Ref, R*(MaxMipMaplevel + 1))).rgb;
 
-	Out.Screen.rgb = Diffuse * ( 1.0 - M ) + DiffuseIBL * ( 1.0 - M );
-	Out.Specular.rgb = Specular * M + SpecularIBL * M;
+	//Out.Screen.rgb = Diffuse * ( 1.0 - M ) + DiffuseIBL * ( 1.0 - M );
+	//Out.Specular.rgb = Specular * M + SpecularIBL * M;
 	//Out.rgb += DiffuseIBL + SpecularIBL;
+	Out.rgb = lerp(Diffuse, Specular, M);
+	Out.rgb += lerp(DiffuseIBL, SpecularIBL, M);
+	//Out.rgb = DiffuseIBL;
 
-	Out.Screen.rgb = pow( Out.Screen.rgb, 1.0f/gamma );
+	Out.rgb = pow(Out.rgb, 1.0f / gamma);
 	return Out;
 }
 

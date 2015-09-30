@@ -180,6 +180,8 @@ float4 PS_SSAO( float2 Tex : TEXCOORD0 ) : COLOR0
 	//[“xî•ñŽæ“¾
 	float Depth = tex2D( DepthSamp, Tex ).r;
 
+	//if( Depth > 0.997 ) return float4( 1.0, 1.0, 1.0, 1.0 );
+
 	float NormalAO = .0f;
 	float DepthAO = .0f;
 

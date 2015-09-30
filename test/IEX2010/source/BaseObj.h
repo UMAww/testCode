@@ -15,7 +15,7 @@ public:
 	virtual void Init(){}
 	virtual void Update()=0{}
 	virtual void Render()=0{}
-	virtual void Render( char* name )=0{}
+	virtual void Render( iexShader* shader, char* name )=0{}
 
 	void SetPos( Vector3 pos ){ this->pos = pos; }
 	void SetAngle( Vector3 angle ){ this->angle = angle; }

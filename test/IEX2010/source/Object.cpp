@@ -1,5 +1,5 @@
 #include	"iextreme.h"
-#include	"system/system.h"
+//#include	"system/system.h"
 #include	"Object.h"
 
 //-------------------------------------’è”éŒ¾‚Æ‚©---------------------------------------------------------
@@ -71,7 +71,7 @@ void Object::Render()
 	obj -> Render();
 }
 
-void Object::Render( char* name )
+void Object::Render( iexShader* shader, char* name )
 {
 	shader->SetValue("Metalness", metalness );
 	shader->SetValue("Roughness", roughness );

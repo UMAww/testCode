@@ -56,6 +56,7 @@ bool sceneMain::Initialize()
 
 	//シェーダー関係
 	shader->SetValue("MaxMipMaplevel", MIPMAP_NUM);
+	shaderD->SetValue("MaxMipMaplevel", MIPMAP_NUM);
 	//キューブマップ作成
 	CreateCubeMap();
 	//RenderTarget
@@ -106,7 +107,7 @@ void	sceneMain::Update()
 
 	if( KEY_Get( KEY_ENTER ) == 3 ) Renderflg = !Renderflg;
 
-	if( KEY_Get( KEY_SPACE ) == 3 ) AddPoint_Light( Vector3( rand()%50, 2.0f, rand()%50 ), Vector3( rand()%2, rand()%2, rand()%2 ), 10.0f );
+	//if( KEY_Get( KEY_SPACE ) == 3 ) AddPoint_Light( Vector3( rand()%50, 2.0f, rand()%50 ), Vector3( rand()%2, rand()%2, rand()%2 ), 10.0f );
 }
 
 //*****************************************************************************************************************************
@@ -127,15 +128,10 @@ void	sceneMain::Render()
 	//	画面クリア
 	camera -> Clear();
 
-	shader -> SetValue("pLight_Num", light_index );
-	shader -> SetValue("pLight_Pos", pLight_Pos, light_index );
-	shader -> SetValue("pLight_Color", pLight_Color, light_index );
-	shader -> SetValue("pLight_Range", pLight_Range, light_index );
-
 	if( Renderflg )
 	{
 		//Deferred
-		screen -> Render( 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, shader,"Deferred");
+		screen -> Render( 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, shaderD,"Deferred");
 
 		//PostEffect
 		SSAO -> Render(0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, RS_MUL, 0xFFFFFFFF);
@@ -154,8 +150,8 @@ void	sceneMain::Render()
 		shader->SetValue("Metalness", 0.0f);
 		shader->SetValue("Roughness", 1.0f);
 		stage->Render(shader, "pbr_test");
-		box->Render("pbr_test");
-		sphere->Render("pbr_test");
+		box->Render(shader, "pbr_test");
+		sphere->Render(shader,"pbr_test");
 
 		//PostEffect
 		SSAO -> Render(0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight, RS_MUL, 0xFFFFFFFF);
@@ -182,19 +178,19 @@ void sceneMain::CreateG_Buffer()
 	sky->Render();
 	//shader->SetValue("Metalness", 0.0f );
 	//shader->SetValue("Roughness", 1.0f );
-	stage->Render(shader, "create_gbuffer");
-	box->Render("create_gbuffer");
-	sphere->Render("create_gbuffer");
+	stage->Render(shaderD, "create_gbuffer");
+	box->Render(shaderD,"create_gbuffer");
+	sphere->Render(shaderD,"create_gbuffer");
 
 	iexSystem::GetDevice()->SetRenderTarget( 0, back );
 	iexSystem::GetDevice()->SetRenderTarget( 1, NULL );
 	iexSystem::GetDevice()->SetRenderTarget( 2, NULL );
 	iexSystem::GetDevice()->SetRenderTarget( 3, NULL );
 
-	shader -> SetValue("ColorMap", color );
-	shader -> SetValue("NormalMap", normal );
-	shader -> SetValue("DepthMap", Depth );
-	shader -> SetValue("MRMap", MR );
+	shaderD -> SetValue("ColorMap", color );
+	shaderD -> SetValue("NormalMap", normal );
+	shaderD -> SetValue("DepthMap", Depth );
+	shaderD -> SetValue("MRMap", MR );
 
 	shader2D -> SetValue("NormalMap", normal );
 	shader2D -> SetValue("DepthMap", Depth );
@@ -274,6 +270,7 @@ void sceneMain::CreateCubeMap( Vector3 BasePoint )
 	
 	//テクスチャの適用
 	shader->SetValue("CubeMap", DynamicCubeTex );
+	shaderD->SetValue("CubeMap", DynamicCubeTex );
 	//キューブマップテクスチャの解放
 	DynamicCubeTex->Release();
 
@@ -301,6 +298,7 @@ void sceneMain::CreateSSAO()
 	Matrix invProj;
 	D3DXMatrixInverse( &invProj, NULL, &matProjection );
 	shader -> SetValue("InvProjection", invProj );
+	shaderD->SetValue("InvProjection", invProj);
 	shader2D -> SetValue("InvProjection", invProj );
 
 	SSAO -> Render( shader2D, "ssao" );
