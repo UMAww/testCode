@@ -5,16 +5,6 @@
 //ƒ‚[ƒVƒ‡ƒ“‚ÌÄ¶‘¬“x‚à•Ï‚¦‚ç‚ê‚é‚æ‚¤‚É
 class Model : public iex3DObj
 {
-private:
-
-	unsigned int interpolationMotionNo;
-	unsigned int interpolationMotionFrame;
-	float interpolationRate;
-	float interpolationSpeed;
-
-	float motionSpeed;
-	float fFrame;
-
 public:
 
 	Model( char* filename, float speed = 1.0f );
@@ -29,7 +19,14 @@ public:
 
 	void SetMotionSpeed( float speed ){ this->motionSpeed = speed; }
 	void SetMotion( const int nextMotion, float blendSpeed = 0.05f );
+private:
+	unsigned int interpolationMotionNo;
+	unsigned int interpolationMotionFrame;
+	float interpolationRate;
+	float interpolationSpeed;
 
+	float motionSpeed;
+	float fFrame;
 };
 
 #endif

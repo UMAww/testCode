@@ -7,6 +7,9 @@
 //		環境関連
 //------------------------------------------------------
 float4x4 Projection;	//	投影変換行列
+float4x4 TransMatrix;	//	ワールド変換行列
+float4x4 matView;		//	カメラ変換行列
+float4x4 matProjection;
 
 //------------------------------------------------------
 //		テクスチャサンプラー	
@@ -14,13 +17,13 @@ float4x4 Projection;	//	投影変換行列
 texture Texture;
 sampler DecaleSamp = sampler_state
 {
-    Texture = <Texture>;
-    MinFilter = LINEAR;
-    MagFilter = LINEAR;
-    MipFilter = NONE;
+	Texture = <Texture>;
+	MinFilter = LINEAR;
+	MagFilter = LINEAR;
+	MipFilter = NONE;
 
-    AddressU = Wrap;
-    AddressV = Wrap;
+	AddressU = Wrap;
+	AddressV = Wrap;
 };
 
 //------------------------------------------------------
@@ -30,14 +33,14 @@ struct VS_OUTPUT
 {
     float4 Pos		: POSITION;
     float4 Color	: COLOR0;
-    float2 Tex		: TEXCOORD0;
+    float2 UV		: TEXCOORD0;
 };
 
 struct VS_INPUT
 {
     float4 Pos    : POSITION;
     float3 Normal : NORMAL;
-    float2 Tex	  : TEXCOORD0;
+    float2 UV	  : TEXCOORD0;
 };
 
 //********************************************************************
@@ -53,7 +56,7 @@ VS_OUTPUT VS_Basic( VS_INPUT In )
     VS_OUTPUT Out = (VS_OUTPUT)0;
 
     Out.Pos = mul(In.Pos, Projection);
-	Out.Tex = In.Tex;
+	Out.UV = In.UV;
 	Out.Color = 1.0f;
 
     return Out;
@@ -66,7 +69,7 @@ float4 PS_Basic( VS_OUTPUT In) : COLOR
 {   
 	float4	OUT;
 	//	ピクセル色決定
-	OUT = In.Color * tex2D( DecaleSamp, In.Tex );
+	OUT = In.Color * tex2D( DecaleSamp, In.UV );
 
 	return OUT;
 }
@@ -74,7 +77,7 @@ float4 PS_Basic( VS_OUTPUT In) : COLOR
 //------------------------------------------------------
 //		通常描画テクニック
 //------------------------------------------------------
-technique copy
+technique base
 {
     pass P0
     {
@@ -90,5 +93,9 @@ technique copy
     }
 }
 
-
-
+//********************************************************************
+//
+//		物理ベース		
+//
+//********************************************************************
+#include"PhysicallyBased.fx"

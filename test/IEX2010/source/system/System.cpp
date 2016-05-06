@@ -9,7 +9,6 @@
 
 iexShader*	shader;
 iexShader*	shader2D;
-iexShader*	shaderD;
 
 //*****************************************************************************************************************************
 //
@@ -30,11 +29,9 @@ void	SYSTEM_Initialize()
 	//KEY_PadAsign( iexInput::xbox360 );	// XBOX360 Controller
 
 	//	シェーダー読み込み
-	//shader = new iexShader("DATA\\SHADER\\3DEx.fx");
-	shader = new iexShader("DATA\\SHADER\\testShader.fx");
+	shader = new iexShader("DATA\\SHADER\\3DEx.fx");
 	//shader2D = new iexShader("DATA\\SHADER\\2D.fx");
 	shader2D = new iexShader("DATA\\SHADER\\PostEffects.fx");
-	shaderD = new iexShader("DATA/SHADER/Deferred.fx");
 	//	パーティクルシステム初期化
 	iexParticle::Initialize("DATA\\PARTICLE.PNG", 10000 );
 }
@@ -43,7 +40,6 @@ void	SYSTEM_Release()
 {
 	delete	shader;
 	delete	shader2D;
-	delete	shaderD;
 	IEX_Release();
 }
 

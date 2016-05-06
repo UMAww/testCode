@@ -13,34 +13,32 @@
 class	sceneMain : public Scene
 {
 private:
-	iexView*	view;
 	iexMesh* stage;
 	iexMesh* sky;
 	Camera* camera;
-	Object* box,*sphere;
+	ObjectManager* sphere;
 
 	bool Renderflg;
 
-	//G-Buffer用RenderTarget
+	//ライティング結果出力用バッファ
 	Surface* back;
 	iex2DObj* screen;
-	iex2DObj* color;
-	iex2DObj* normal;
-	iex2DObj* Depth;
-	iex2DObj* MR;	//M:Metalness, R:Roughness
+	iex2DObj* IBL;
+
+	//G-Buffer用RenderTarget
+	iex2DObj* color;    //BaseColor出力
+	iex2DObj* normal;   //法線出力
+	iex2DObj* depth;    //深度情報出力
+	iex2DObj* MR;	    //M:Metalness, R:Roughness
+	iex2DObj* light;    //ライトマップ
+	iex2DObj* specular; //スペキュラIBL出力
 
 	static const int CUBE_SIZE = 512;
 	static const int MIPMAP_NUM;
-	static const int PLIGHT_NUM = 20;
-
-	Vector3 pLight_Pos[PLIGHT_NUM];
-	Vector3 pLight_Color[PLIGHT_NUM];
-	float pLight_Range[PLIGHT_NUM];
-	int light_index;
 
 	//Post-Effect
 	iex2DObj* SSAO;
-
+	bool useSSAO;
 public:
 	~sceneMain();
 	//	初期化
@@ -52,13 +50,13 @@ public:
 	//キューブマップ作成
 	//BasePoint:撮影原点
 	void CreateCubeMap( Vector3 BasePoint = Vector3( .0f, 2.0f, .0f));
-	void StaticCreateCubeMap( char* filename );
-
+private:
+	void ForwardRenderProc();
+	void DeferredRenderProc();
 	void CreateG_Buffer();
 	void CreateSSAO();
-
-	void AddPoint_Light( const Vector3& pos, const Vector3& color, float range );
-	void DelPoint_Light();
+	void PostEffectProc();
+	void DirLight( Vector3 light_vec, Vector3 light_color );
 };
 
 

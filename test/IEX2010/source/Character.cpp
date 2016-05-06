@@ -19,13 +19,13 @@ Character::Character( char* filename, float speed ):state(PlayerState::MOVE)
 
 Character::~Character()
 {
-	if( obj ){ delete obj; obj = nullptr; }
+	if( m_obj ){ delete m_obj; m_obj = nullptr; }
 }
 
 void Character::Init( char* filename, float speed )
 {
-	obj = new Model( filename, speed );
-	obj -> SetMotion( 0 );
+	m_obj = new Model( filename, speed );
+	m_obj -> SetMotion( 0 );
 }
 
 void Character::Update()
@@ -42,21 +42,21 @@ void Character::Update()
 
 	//angle.y += 0.01f;
 
-	obj -> Animation();
-	obj -> SetScale( scale );
-	obj -> SetAngle( angle );
-	obj -> SetPos( pos );
-	obj -> Update();
+	m_obj -> Animation();
+	m_obj -> SetScale( m_scale );
+	m_obj -> SetAngle( m_angle );
+	m_obj -> SetPos( m_pos );
+	m_obj -> Update();
 }
 
 void Character::Render()
 {
-	obj -> Render();
+	m_obj -> Render();
 }
 
 void Character::Render( char* name )
 {
-	obj -> Render( shader, name );
+	m_obj -> Render( shader, name );
 }
 
 /*
@@ -65,9 +65,9 @@ void Character::Render( char* name )
 
 void Character::ChangeMotion( int motion, float blendspeed )
 {
-	if( obj->GetMotion() == motion ) return;
+	if( m_obj->GetMotion() == motion ) return;
 
-	obj -> SetMotion( motion, blendspeed ); 
+	m_obj -> SetMotion( motion, blendspeed ); 
 }
 
 void Character::Move()
@@ -89,11 +89,11 @@ void Character::Move()
 	Vector3 right( matView._11, 0, matView._31 );
 	right.Normalize();
 	//ˆÚ“®—Ê
-	move = ( front*AxisY + right*AxisX ) * SPEED;
+	m_move = ( front*AxisY + right*AxisX ) * SPEED;
 
 	//¶‰E”»’è
-	float x1 = move.x; float z1 = move.z;
-	float x2 = sinf( angle.y ); float z2 = cosf( angle.y );
+	float x1 = m_move.x; float z1 = m_move.z;
+	float x2 = sinf( m_angle.y ); float z2 = cosf( m_angle.y );
 	//ŠOÏ
 	float cross = x1*z2 - x2*z1;
 	//•â³—Ê’²®
@@ -103,9 +103,9 @@ void Character::Move()
 	if( adjust > 0.3f ) adjust = 0.3f;
 
 	//•ûŒü“]Š·
-	if( cross < 0 ) angle.y -= adjust;
-	else angle.y += adjust;
+	if( cross < 0 ) m_angle.y -= adjust;
+	else m_angle.y += adjust;
 
-	pos += move;
+	m_pos += m_move;
 	ChangeMotion( 1, 0.1f );
 }

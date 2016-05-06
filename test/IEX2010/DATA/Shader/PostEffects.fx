@@ -17,8 +17,9 @@ sampler DecaleSamp = sampler_state
     MagFilter = POINT;
     MipFilter = NONE;
 
-    AddressU = Wrap;
-    AddressV = Wrap;
+	AddressU = Border;
+	AddressV = Border;
+	BorderColor = float4( .0f, .0f, .0f, 1.0f );
 };
 
 texture NormalMap;	//	法線マップテクスチャ
@@ -29,8 +30,9 @@ sampler NormalSamp = sampler_state
     MagFilter = LINEAR;
     MipFilter = NONE;
 
-    AddressU = Wrap;
-    AddressV = Wrap;
+	AddressU = Border;
+	AddressV = Border;
+	BorderColor = float4( .0f, .0f, .0f, 1.0f );
 };
 
 texture DepthMap;
@@ -41,8 +43,9 @@ sampler DepthSamp = sampler_state
 	MagFilter = LINEAR;
 	MipFilter = NONE;
 
-	AddressU = Wrap;
-	AddressV = Wrap;
+	AddressU = Border;
+	AddressV = Border;
+	BorderColor = float4( .0f, .0f, .0f, 1.0f );
 };
 
 //------------------------------------------------------

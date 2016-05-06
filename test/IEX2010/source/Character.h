@@ -14,7 +14,7 @@ class Character	:	public BaseObj
 {
 private:
 
-	Model* obj;
+	Model* m_obj;
 	PlayerState state;
 
 	static const float SPEED;
@@ -33,7 +33,7 @@ public:
 	void Render( char* name );
 
 	void SetMotion( int n, float blendspeed ){ ChangeMotion( n, blendspeed ); }
-	Matrix GetMatrix(){ return this->obj->TransMatrix; }
+	Matrix GetMatrix(){ return this->m_obj->TransMatrix; }
 
 };
 

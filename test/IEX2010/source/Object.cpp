@@ -8,74 +8,79 @@ const float Object::SPEED = 0.01f;
 
 //------------------------------------------------------------------------------------------------------------
 
-Object::Object() : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.0f )
+Object::Object() : m_obj( nullptr ), m_move( .0f, .0f, .0f ), m_vec( .0f ), m_metalness(1.0f), m_roughness( 0.0f ), m_isEnable( true )
 {
 }
 
-Object::Object( char* filename ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.0f )
+Object::Object( iexMesh* obj ): m_obj( nullptr ), m_move( .0f, .0f, .0f ), m_vec( .0f ), m_metalness( 1.0f ), m_roughness( 0.0f ), m_isEnable( true )
 {
-	obj = new iexMesh( filename );
-	this->pos = this->angle = Vector3( .0f, .0f, .0f );
-	this->scale = Vector3( 1.0f, 1.0f, 1.0f );
-	obj->SetScale( this->scale );
-	obj->SetAngle( this->angle );
-	obj->SetPos( this->pos );
-	obj->Update();
+	m_obj = obj->Clone();
 }
 
-Object::Object( char* filename, Vector3 pos, Vector3 angle, Vector3 scale ) : obj( nullptr ), move( .0f, .0f, .0f ), vec( .0f ), metalness(1.0f), roughness( 0.0f )
+Object::Object( char* filename ) : m_obj( nullptr ), m_move( .0f, .0f, .0f ), m_vec( .0f ), m_metalness(1.0f), m_roughness( 0.0f ), m_isEnable( true )
 {
-	obj = new iexMesh( filename );
-	this->pos = pos;
-	this->angle = angle;
-	this->scale = scale;
-	obj->SetScale( this->scale );
-	obj->SetAngle( this->angle );
-	obj->SetPos( this->pos );
-	obj->Update();
+	m_obj = new iexMesh( filename );
+	this->m_pos = this->m_angle = Vector3( .0f, .0f, .0f );
+	this->m_scale = Vector3( 1.0f, 1.0f, 1.0f );
+	m_obj->SetScale( this->m_scale );
+	m_obj->SetAngle( this->m_angle );
+	m_obj->SetPos( this->m_pos );
+	m_obj->Update();
+}
+
+Object::Object( char* filename, Vector3 pos, Vector3 angle, Vector3 scale ) : m_obj( nullptr ), m_move( .0f, .0f, .0f ), m_vec( .0f ), m_metalness(1.0f), m_roughness( 0.0f ), m_isEnable( true )
+{
+	m_obj = new iexMesh( filename );
+	this->m_pos = pos;
+	this->m_angle = angle;
+	this->m_scale = scale;
+	m_obj->SetScale( this->m_scale );
+	m_obj->SetAngle( this->m_angle );
+	m_obj->SetPos( this->m_pos );
+	m_obj->Update();
 }
 
 Object::~Object()
 {
-	if( obj ){ delete obj; obj = nullptr; }
+	if( m_obj ){ delete m_obj; m_obj = nullptr; }
 }
 
 void Object::Init( char* filename )
 {
-	obj = new iexMesh( filename );
+	m_obj = new iexMesh( filename );
 }
 
 void Object::Update()
 {
 	//ˆÚ“®
-	Move();
+	//Move();
 
 	//angle.y += 0.01f;
-	if( KEY_Get( KEY_A ) ){ roughness += 0.003f; }
-	if( KEY_Get( KEY_B ) ){ roughness -= 0.003f; }
-	if( roughness <= .0f ){ roughness = .0f; }
-	if( roughness >= 1.0f ){ roughness = 1.0f; }
-	if( KEY_Get( KEY_C ) ){ metalness += 0.003f; }
-	if( KEY_Get( KEY_D ) ){ metalness -= 0.003f; }
-	if( metalness <= .0f ){ metalness = .0f; }
-	if( metalness >= 1.0f ){ metalness = 1.0f; }
+	//if( KEY_Get( KEY_A ) ){ roughness += 0.003f; }
+	//if( KEY_Get( KEY_B ) ){ roughness -= 0.003f; }
+	//if( roughness <= .0f ){ roughness = .0f; }
+	//if( roughness >= 1.0f ){ roughness = 1.0f; }
+	//if( KEY_Get( KEY_C ) ){ metalness += 0.003f; }
+	//if( KEY_Get( KEY_D ) ){ metalness -= 0.003f; }
+	//if( metalness <= .0f ){ metalness = .0f; }
+	//if( metalness >= 1.0f ){ metalness = 1.0f; }
 
-	obj -> SetScale( scale );
-	obj -> SetAngle( angle );
-	obj -> SetPos( pos );
-	obj -> Update();
+	m_obj -> SetScale( m_scale );
+	m_obj -> SetAngle( m_angle );
+	m_obj -> SetPos( m_pos );
+	m_obj -> Update();
 }
 
 void Object::Render()
 {
-	obj -> Render();
+	m_obj -> Render();
 }
 
 void Object::Render( iexShader* shader, char* name )
 {
-	shader->SetValue("Metalness", metalness );
-	shader->SetValue("Roughness", roughness );
-	obj -> Render( shader, name );
+	shader->SetValue("testMetalness", m_metalness );
+	shader->SetValue("testRoughness", m_roughness );
+	m_obj -> Render( shader, name );
 }
 
 void Object::Move()
@@ -93,11 +98,11 @@ void Object::Move()
 	Vector3 right( matView._11, 0, matView._31 );
 	right.Normalize();
 	//ˆÚ“®—Ê
-	move = ( front*AxisY + right*AxisX ) * SPEED;
+	m_move = ( front*AxisY + right*AxisX ) * SPEED;
 
 	//¶‰E”»’è
-	float x1 = move.x; float z1 = move.z;
-	float x2 = sinf( vec ); float z2 = cosf( vec );
+	float x1 = m_move.x; float z1 = m_move.z;
+	float x2 = sinf( m_vec ); float z2 = cosf( m_vec );
 	//ŠOÏ
 	float cross = x1*z2 - x2*z1;
 	//•â³—Ê’²®
@@ -107,8 +112,8 @@ void Object::Move()
 	if( adjust > 0.3f ) adjust = 0.3f;
 
 	//•ûŒü“]Š·
-	if( cross < 0 ) vec -= adjust;
-	else vec += adjust;
+	if( cross < 0 ) m_vec -= adjust;
+	else m_vec += adjust;
 
-	pos += move;
+	m_pos += m_move;
 }

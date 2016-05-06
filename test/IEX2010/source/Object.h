@@ -2,24 +2,13 @@
 #define __OBJECT_H__
 
 #include	"BaseObj.h"
+#include    "ObjectManager.h"
 
 class Object	:	public BaseObj
 {
-private:
-
-	iexMesh* obj;
-	Vector3 move;
-	float vec;
-
-	float metalness;
-	float roughness;
-
-	static const float SPEED;
-	void Move();
-
 public:
-
 	Object();
+	Object( iexMesh* obj );
 	Object( char* filename );
 	Object( char* filename, Vector3 pos, Vector3 angle, Vector3 scale );
 	~Object();
@@ -29,7 +18,24 @@ public:
 	void Render();
 	void Render(iexShader* shader, char* name );
 
-	float GetRoughness(){ return this->roughness; }
-	float GetMetalness(){ return this->metalness; }
+	//アクセサ
+	float GetRoughness(){ return this->m_roughness; }
+	float GetMetalness(){ return this->m_metalness; }
+	void SetRoughness(float value){ this->m_roughness = value; }
+	void SetMetalness(float value){ this->m_metalness = value; }
+private:
+	iexMesh* m_obj;
+	Vector3 m_move;
+	float m_vec;
+
+	float m_metalness;
+	float m_roughness;
+
+	static const float SPEED;
+	//マネージャーで一括管理
+	friend class ObjectManager;
+	bool m_isEnable;
+private:
+	void Move();
 };
 #endif

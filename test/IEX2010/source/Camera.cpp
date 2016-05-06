@@ -67,9 +67,6 @@ void Camera::Clear( long color )
 	shader -> SetValue("matView", matView );
 	shader -> SetValue("matProjection", matProjection );
 
-	shaderD -> SetValue("matView", matView);
-	shaderD -> SetValue("matProjection", matProjection);
-
 	shader2D -> SetValue("matView", matView );
 	shader2D -> SetValue("matProjection", matProjection );
 }
@@ -80,9 +77,6 @@ void Camera::ClearScreen( long color )
 
 	shader -> SetValue("matView", matView );
 	shader -> SetValue("matProjection", matProjection );
-
-	shaderD->SetValue("matView", matView);
-	shaderD->SetValue("matProjection", matProjection);
 
 	shader2D -> SetValue("matView", matView );
 	shader2D -> SetValue("matProjection", matProjection );
@@ -108,8 +102,8 @@ void Camera::Rotate()
 	D3DXVec3Normalize( &right, &right );
 
 	//スティック情報取得
-	float AxisX =  KEY_GetAxisX2() * 0.01f;
-	float AxisY =  KEY_GetAxisY2() * 0.01f;
+	float AxisX =  KEY_GetAxisX() * 0.01f;
+	float AxisY =  KEY_GetAxisY() * 0.01f;
 	//軸補正
 	if( AxisX*AxisX < 0.3f*0.3f ) AxisX = .0f;
 	if( AxisY*AxisY < 0.3f*0.3f ) AxisY = .0f;

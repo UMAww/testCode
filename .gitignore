@@ -1,2 +1,4 @@
 /test/IEX2010/*.sdf
 /test/IEX2010/Debug
+/test/IEX2010/.vs
+/test/IEX2010/*.VC.opendb

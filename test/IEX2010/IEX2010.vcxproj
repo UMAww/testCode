@@ -111,6 +111,7 @@
     <ClCompile Include="source\Character.cpp" />
     <ClCompile Include="source\Model.cpp" />
     <ClCompile Include="source\Object.cpp" />
+    <ClCompile Include="source\ObjectManager.cpp" />
     <ClCompile Include="source\sceneMain.cpp" />
     <ClCompile Include="source\system\Framework.cpp" />
     <ClCompile Include="source\system\System.cpp" />
@@ -138,6 +139,7 @@
     <ClInclude Include="source\Character.h" />
     <ClInclude Include="source\Model.h" />
     <ClInclude Include="source\Object.h" />
+    <ClInclude Include="source\ObjectManager.h" />
     <ClInclude Include="source\system\Framework.h" />
     <ClInclude Include="source\system\Scene.h" />
     <ClInclude Include="source\sceneMain.h" />
@@ -153,13 +155,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="DATA\Shader\Deferred.fx">
+    <FxCompile Include="DATA\Shader\PhysicallyBased.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="DATA\Shader\PostEffects.fx">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="DATA\Shader\testShader.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </FxCompile>
   </ItemGroup>
