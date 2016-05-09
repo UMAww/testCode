@@ -52,7 +52,10 @@ bool sceneMain::Initialize()
 	MR       = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	light    = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	specular = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
-
+	IBL      = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
+#ifdef _DEBUG
+	show_buffer = false;
+#endif
 
 	//Post-Effect
 	//SSAO
@@ -76,6 +79,7 @@ sceneMain::~sceneMain()
 	DeleteObj( SSAO );
 	DeleteObj( light );
 	DeleteObj( specular );
+	DeleteObj( IBL );
 }
 
 //*****************************************************************************************************************************
@@ -88,6 +92,14 @@ void	sceneMain::Update()
 	sphere -> Update();
 
 	camera -> Update( Vector3( .0f, 0.5f, .0f ) );
+
+#ifdef _DEBUG
+	//「Z」キーでG-Bufferの表示切り替え
+	if( KEY_Get( KEY_A ) == 3 )
+	{
+		show_buffer = !show_buffer;
+	}
+#endif
 }
 
 //*****************************************************************************************************************************
@@ -137,6 +149,21 @@ void sceneMain::CreateG_Buffer()
 	shader2D -> SetValue("DepthMap", depth );
 
 }
+
+#ifdef _DEBUG
+void sceneMain::ShowG_Buffer()
+{
+	if( !show_buffer ) return;
+
+	color   -> Render(   0,   0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
+	normal  -> Render( 320,   0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
+	depth   -> Render( 640,   0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
+	MR      -> Render( 960,   0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
+	light   -> Render(   0, 160, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
+	specular-> Render( 320, 160, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
+	IBL     -> Render( 640, 160, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
+}
+#endif
 
 //キューブマップの作成
 void sceneMain::CreateCubeMap( Vector3 BasePoint )
@@ -254,29 +281,19 @@ void sceneMain::DeferredRenderProc()
 	Vector3 lightcolor( 1.0f, 1.0f, 1.0f );
 	DirLight( lightvec, lightcolor );
 
-	//合成
-	screen->RenderTarget();
-	camera->Clear();
-	screen->Render( shader, "deferred");
-
 	//出力
 	iexSystem::Device->SetRenderTarget( 0, back );
 	camera->Clear();
-	screen->Render();
-	
-#ifdef _DEBUG
-	//ShowG_Buffer
-	color->Render( 0, 0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
-	normal->Render( 320, 0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
-	specular->Render( 640, 0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
-	light->Render( 960, 0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
-#endif
+	screen->Render( shader, "deferred");
+
+	ShowG_Buffer();
 }
 
 void sceneMain::DirLight( Vector3 light_vec, Vector3 light_color )
 {
 	light->RenderTarget();
 	specular->RenderTarget( 1 );
+	IBL->RenderTarget( 2 );
 
 	camera->Clear();
 
@@ -286,14 +303,14 @@ void sceneMain::DirLight( Vector3 light_vec, Vector3 light_color )
 
 	iexSystem::Device->SetRenderTarget( 0, back );
 	iexSystem::Device->SetRenderTarget( 1, NULL );
+	iexSystem::Device->SetRenderTarget( 2, NULL );
 
 	shader->SetValue("LightMap", light );
 	shader->SetValue("SpecularMap", specular );
+	shader->SetValue("IBLMap", IBL );
 }
 
 void sceneMain::PostEffectProc()
 {
 	CreateSSAO();
-
-	SSAO->Render( 0, 160, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
 }

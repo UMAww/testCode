@@ -113,6 +113,19 @@ sampler LightSamp = sampler_state
 	BorderColor = float4(.0f, .0f, .0f, 1.0f);
 };
 
+texture IBLMap;
+sampler IBLSamp = sampler_state
+{
+	Texture = <IBLMap>;
+	MinFilter = LINEAR;
+	MagFilter = LINEAR;
+	MipFilter = NONE;
+
+	AddressU = Border;
+	AddressV = Border;
+	BorderColor = float4(.0f, .0f, .0f, 1.0f);
+};
+
 //逆投影変換行列
 float4x4 InvProjection;	
 
@@ -433,7 +446,7 @@ float3 CookTorrance1( in const float3 Normal, in const float3 LightDir, in const
 }
 
 float3 CookTorrance2( in const float3 Normal, in const float3 LightDir, in const float3 Eye,
-	in const float Roughness, in const float3 F0 )
+	                  in const float Roughness, in const float3 F0 )
 {
 	//HalfVector
 	float3 H = normalize( LightDir + Eye );
@@ -465,6 +478,7 @@ struct PS_DEFERRED
 {
 	float4 Color    : COLOR0;
 	float4 Specular : COLOR1;
+	float4 IBL      : COLOR2;
 };
 
 float3 LightVec = { 1.0f, -1.0f, 1.0f };
@@ -480,10 +494,14 @@ PS_DEFERRED PS_DirLight( float2 UV : TEXCOORD0 ) : COLOR
     float4 Position = CalucuViewPosFromScreenPos( UV );
 	float3 Eye = normalize( -Position.xyz );
 
-    float3 Light = normalize( -LightVec );
+	//光線ベクトルもビュー空間で計算
+    float3 Light = normalize( mul( -LightVec, (float3x3)matView ) );
     //法線マップから法線の取得
     float3 Normal = tex2D( NormalSamp, UV ).xyz * 2.0f - 1.0f;
 	Normal = normalize( Normal );
+	//反射ベクトル
+	float3 Reflect = reflect( -Eye, Normal );
+	Reflect = normalize( Reflect );
 
 	//同じようにラフネス、メタルネスも取得
 	float Metalness = tex2D( MRSamp, UV ).r;
@@ -503,6 +521,8 @@ PS_DEFERRED PS_DirLight( float2 UV : TEXCOORD0 ) : COLOR
 
 	Out.Specular.rgb = Specular * Metalness;         //Diffuseとの総和が１を超えないように
 	Out.Specular.a = 1.0f;
+
+	Out.IBL = texCUBEbias( CubeSamp, float4( Reflect, Roughness * (MaxMipMaplevel+1) ) );
     
     return Out;
 }
@@ -539,7 +559,9 @@ float4 PS_Deferred( float2 UV : TEXCOORD0 ) : COLOR0
 
 	Out.rgb += tex2D( SpecularSamp, UV ).rgb;
 
-	Out.rgb = pow( Out.rgb, 1.0f / gamma );		//ディスプレイガンマの逆補正をかけて出力
+	//Out.rgb *= tex2D( IBLSamp, UV ).rgb;
+
+	Out.rgb = pow( Out.rgb, 1.0f / gamma ); //ディスプレイガンマの逆補正をかけて出力
 	return Out;
 }
 

@@ -21,7 +21,7 @@ private:
 	bool Renderflg;
 
 	//ライティング結果出力用バッファ
-	Surface* back;
+	Surface*  back;
 	iex2DObj* screen;
 	iex2DObj* IBL;
 
@@ -32,6 +32,9 @@ private:
 	iex2DObj* MR;	    //M:Metalness, R:Roughness
 	iex2DObj* light;    //ライトマップ
 	iex2DObj* specular; //スペキュラIBL出力
+#ifdef _DEBUG
+	bool      show_buffer; //G-Bufferをレンダリングするか
+#endif
 
 	static const int CUBE_SIZE = 512;
 	static const int MIPMAP_NUM;
@@ -54,6 +57,9 @@ private:
 	void ForwardRenderProc();
 	void DeferredRenderProc();
 	void CreateG_Buffer();
+#ifdef _DEBUG
+	void ShowG_Buffer();
+#endif
 	void CreateSSAO();
 	void PostEffectProc();
 	void DirLight( Vector3 light_vec, Vector3 light_color );
