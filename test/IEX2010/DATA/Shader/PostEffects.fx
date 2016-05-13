@@ -1,52 +1,5 @@
-//------------------------------------------------------
-//		環境関連
-//------------------------------------------------------
-float4x4 Projection;	//	投影変換行列
-float4x4 InvProjection;	//	逆投影変換行列
-float4x4 matView;		//	カメラ変換行列
-float4x4 matProjection;
-
-//------------------------------------------------------
-//		テクスチャサンプラー	
-//------------------------------------------------------
-texture Texture;
-sampler DecaleSamp = sampler_state
-{
-    Texture = <Texture>;
-    MinFilter = POINT;
-    MagFilter = POINT;
-    MipFilter = NONE;
-
-	AddressU = Border;
-	AddressV = Border;
-	BorderColor = float4( .0f, .0f, .0f, 1.0f );
-};
-
-texture NormalMap;	//	法線マップテクスチャ
-sampler NormalSamp = sampler_state
-{
-    Texture = <NormalMap>;
-    MinFilter = LINEAR;
-    MagFilter = LINEAR;
-    MipFilter = NONE;
-
-	AddressU = Border;
-	AddressV = Border;
-	BorderColor = float4( .0f, .0f, .0f, 1.0f );
-};
-
-texture DepthMap;
-sampler DepthSamp = sampler_state
-{
-	Texture = <DepthMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Border;
-	AddressV = Border;
-	BorderColor = float4( .0f, .0f, .0f, 1.0f );
-};
+#include"Utility.fx"
+#include"TextureSamplers.fx"
 
 //------------------------------------------------------
 //		頂点フォーマット
@@ -160,28 +113,17 @@ const float3 SphereArray[16] = {
 	float3( -0.47761092f ,  0.2847911f   , -0.0271716f)
 };
 
-float4 ConvertViewPosition( in float2 Tex )
-{
-	float4 screen = 1;
-	screen.xy = Tex * 2.0 - 1.0;
-	screen.y = -screen.y;
-	screen.z = tex2D(DepthSamp, Tex).r;
-	float4 position = mul( screen, InvProjection );
-	position.xyz /= position.w;
-	return position;
-}
-
-float4 PS_SSAO( float2 Tex : TEXCOORD0 ) : COLOR0
+float4 PS_SSAO( float2 UV : TEXCOORD0 ) : COLOR0
 {
 	float4 Out = 0;
 
 	//正規化されたスクリーン座標をビュー空間へ変換
-	float4 Position = ConvertViewPosition( Tex );
+	float4 Position = CalucuViewPosFromScreenPos( UV );
 	//法線取得
-	float3 Normal = tex2D( NormalSamp, Tex ).rgb * 2.0 - 1.0;
+	float3 Normal = tex2D( NormalSamp, UV ).rgb * 2.0 - 1.0;
 	Normal = normalize( Normal );
 	//深度情報取得
-	float Depth = tex2D( DepthSamp, Tex ).r;
+	float Depth = tex2D( DepthSamp, UV ).r;
 
 	//if( Depth > 0.997 ) return float4( 1.0, 1.0, 1.0, 1.0 );
 

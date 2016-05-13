@@ -1,167 +1,8 @@
-//------------------------------------------------------
-//		テクスチャサンプラー	
-//------------------------------------------------------
-texture ColorMap;
-sampler ColorSamp = sampler_state
-{
-	Texture = <ColorMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Border;
-	AddressV = Border;
-	BorderColor = float4(.0f, .0f, .0f, 1.0f);
-};
-
-texture NormalMap;	//	法線マップテクスチャ
-sampler NormalSamp = sampler_state
-{
-	Texture   = <NormalMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
-
-texture SpecularMap;	//	Specularテクスチャ
-sampler SpecularSamp = sampler_state
-{
-	Texture = <SpecularMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
-
-texture MetalMap;  //  メタルネスマップ
-sampler MetalSamp = sampler_state
-{
-	Texture   = <MetalMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
-
-texture DepthMap;
-sampler DepthSamp = sampler_state
-{
-	Texture = <DepthMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Border;
-	AddressV = Border;
-	BorderColor = float4( .0f, .0f, .0f, 1.0f );
-};
-
-texture RoughnessMap;  //  ラフネスマップ
-sampler RoughnessSamp = sampler_state
-{
-	Texture   = <RoughnessMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
-
-textureCUBE CubeMap;	//キューブマップテクスチャ
-samplerCUBE CubeSamp = sampler_state
-{
-	Texture   = <CubeMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = LINEAR;
-};
+#include"Utility.fx"
+#include"TextureSamplers.fx"
 
 float testMetalness = 1.0f;  //CPU側から値を持ってくる仮の変数
 float testRoughness = 0.1f;  //CPU側から値を持ってくる仮の変数
-
-texture MRMap;    //Deferred用MetalnessとRoughnessを格納するテクスチャ
-sampler MRSamp = sampler_state
-{
-	Texture = <MRMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Border;
-	AddressV = Border;
-	BorderColor = float4( .0f, .0f, .0f, 1.0f );
-};
-
-texture LightMap;    //LightMap
-sampler LightSamp = sampler_state
-{
-	Texture = <LightMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Border;
-	AddressV = Border;
-	BorderColor = float4(.0f, .0f, .0f, 1.0f);
-};
-
-texture IBLMap;
-sampler IBLSamp = sampler_state
-{
-	Texture = <IBLMap>;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	MipFilter = NONE;
-
-	AddressU = Border;
-	AddressV = Border;
-	BorderColor = float4(.0f, .0f, .0f, 1.0f);
-};
-
-//逆投影変換行列
-float4x4 InvProjection;	
-
-//円周率
-static const float PI = 3.14159265f;
-
-//ディスプレイガンマ値
-static const float gamma = 2.2f;
-
-//最大ミップマップレベル
-int MaxMipMaplevel = 0;
-
-//自然対数の底(ネイピア数)
-static const float E = 2.71828f;
-
-//-------------------------------------------------------------------
-// @brief スクリーン座標からビュー座標系の位置を算出する
-//
-// @param ScreenPos   スクリーン座標(UV値)
-//
-// @return ビュー空間での座標を返す
-//-------------------------------------------------------------------
-float4 CalucuViewPosFromScreenPos( in float2 UV )
-{
-	float4 position = (float4)1.0f;
-
-	position.xy = UV * 2.0f - 1.0f;   //-1から1に戻す
-	position.y = -position.y;
-	position.z = tex2D( DepthSamp, UV ).r;
-
-	//逆行列を掛けてビュー座標系に変換
-	position = mul( position, InvProjection );
-	position.xyz /= position.w;
-
-	return position;
-}
 
 //********************************************************************
 //																									
@@ -176,7 +17,7 @@ struct VS_G_BUFFER
 	float3 Normal			: TEXCOORD1;
 	float3 BiNormal			: TEXCOORD2;
 	float3 Tangent			: TEXCOORD3;
-	float4 ProjectionPos	: TEXCOORD4;
+	float4 ViewPos			: TEXCOORD4;
 };
 
 struct PS_G_BUFFER
@@ -192,7 +33,8 @@ VS_G_BUFFER VS_CreateG_Buffer( VS_INPUT In )
 	VS_G_BUFFER Out = (VS_G_BUFFER)0;
 
 	Out.Position      = mul( In.Pos, Projection );
-	Out.ProjectionPos = Out.Position;
+	float4x4 mat = mul( TransMatrix, matView );
+	Out.ViewPos = mul( In.Pos, mat );
 
 	Out.UV = In.UV;
 
@@ -226,7 +68,8 @@ PS_G_BUFFER PS_CreateG_Buffer( VS_G_BUFFER In ) : COLOR
 	N = N * 0.5 + 0.5;
 	Out.Normal = float4( N, 1 );
 	
-	float D = In.ProjectionPos.z / In.ProjectionPos.w;
+	//float D   = In.ProjectionPos.z / In.ProjectionPos.w;
+	float D = In.ViewPos.z / zFar;
 	//本来はテクスチャから読み込み
 	//float M = tex2D( MetalnessSamp, In.Tex ).r;
 	//float R = tex2D( RoughnessSamp, In.Tex ).r;
@@ -328,13 +171,13 @@ float3 OrenNayar( in const float3 Normal, in const float3 LightDir,
 //
 // @note Roughnessの値は0.0~1.0を入力する
 //-------------------------------------------------------------------
-float3 GGX( in const float Roughness, in const float NoH )
+float GGX( in const float Roughness, in const float NoH )
 {
 	float alpha = pow( Roughness, 2 );
 	float alpha2 = pow( alpha, 2 );
-	float NoH2 = pow( NoH, 2);
+	float NoH2 = pow( saturate( NoH ), 2);
 	float D = alpha2 / ( PI * pow( NoH2 * ( alpha - 1 ) + 1, 2 ) );
-	return float3( D, D, D );
+	return D;
 }
 
 //マイクロファセットの分布関数は色々あるみたいやから色々試したい
@@ -356,7 +199,7 @@ float3 Fresnel( in const float3 F0, in const float cosT )
 //ガウシアン球は後で
 
 //-------------------------------------------------------------------
-// @brief 幾何減衰率の各項を計算をする(IBL用)
+// @brief 幾何減衰率の各項を計算をする
 //
 // @param Dot       内積
 // @param Roughness 面の質感(つるつるかザラザラか)
@@ -364,31 +207,14 @@ float3 Fresnel( in const float3 F0, in const float cosT )
 // @return 計算結果を返す
 //
 //-------------------------------------------------------------------
-float G1( in const float Dot, in const float Roughness )
+float G( in const float Dot, in const float Roughness )
 {
 	float k = pow( Roughness+1, 2 ) / 8;
 	return Dot / ( Dot * ( 1 - k ) + k );
 }
 
 //-------------------------------------------------------------------
-// @brief 幾何減衰率の各項を計算をする(PointLight用)
-//
-// @param Dot       内積
-// @param Roughness 面の質感(つるつるかザラザラか)
-//
-// @return 計算結果を返す
-//
-// @note スペキュラが明るくなりすぎるためマッピング処理を挟む
-//-------------------------------------------------------------------
-float G2( in const float Dot, in const float Roughness )
-{
-	float roughness = ( 0.5f + Roughness ) / 2.0f; //0~1だとスペキュラが明るくなりすぎるため0.5~1にマッピング
-	float k = pow( roughness, 2 ) / 2.0f;
-	return Dot / (Dot * (1 - k) + k);
-}
-
-//-------------------------------------------------------------------
-// @brief 幾何減衰率の計算(IBL用)
+// @brief 幾何減衰率の計算
 //
 // @param NoL       法線と光線の内積
 // @param NoE       法線と視線の内積
@@ -399,14 +225,9 @@ float G2( in const float Dot, in const float Roughness )
 // @note Roughnessの値は0.0~1.0を入力する
 // @note 1はIBL用2はポイントライトとか用
 //-------------------------------------------------------------------
-float3 Geometric1( in const float NoL, in const float NoE, in const float Roughness )
+float Geometric( in const float NoL, in const float NoE, in const float Roughness )
 {
-	return G1( NoL, Roughness ) * G1( NoE, Roughness );
-}
-
-float3 Geometric2( in const float NoL, in const float NoE, in const float Roughness )
-{
-	return G2(NoL, Roughness) * G2(NoE, Roughness);
+	return G( NoL, Roughness ) * G( NoE, Roughness );
 }
 
 //-------------------------------------------------------------------
@@ -422,48 +243,25 @@ float3 Geometric2( in const float NoL, in const float NoE, in const float Roughn
 //
 // @note Roughnessの値は0.0~1.0を入力する
 //-------------------------------------------------------------------
-float3 CookTorrance1( in const float3 Normal, in const float3 LightDir, in const float3 Eye,
+float3 CookTorrance( in const float3 Normal, in const float3 LightDir, in const float3 Eye,
 	               in const float Roughness, in const float3 F0 )
 {
 	//HalfVector
 	float3 H = normalize( LightDir + Eye );
-	float NoE = dot( Normal, Eye );
-	float NoL = dot( Normal, LightDir );
-	float NoH = dot( Normal, H );
-	float LoH = dot( LightDir, H );
-	float EoH = dot( Eye, H );
+	float NoE = saturate( dot( Normal, Eye ) );
+	float NoL = saturate( dot( Normal, LightDir ) );
+	float NoH = saturate( dot( Normal, H ) );
+	float LoH = saturate( dot( LightDir, H ) );
+	float EoH = saturate( dot( Eye, H ) );
 
 	//マイクロファセッとの分布関数D(h)
-	float3 D = GGX( Roughness, NoH );
+	float D = GGX( Roughness, NoH );
 
 	//フレネル反射率F(v,h)
 	float3 F = Fresnel( F0, LoH );
 
 	//幾何減衰率項G(l,v,h)
-	float3 G = Geometric1( NoL, NoE, Roughness );
-
-	return ( D * F * G ) / ( 4 * NoL * NoE );
-}
-
-float3 CookTorrance2( in const float3 Normal, in const float3 LightDir, in const float3 Eye,
-	                  in const float Roughness, in const float3 F0 )
-{
-	//HalfVector
-	float3 H = normalize( LightDir + Eye );
-	float NoE = dot( Normal, Eye );
-	float NoL = dot( Normal, LightDir );
-	float NoH = dot( Normal, H );
-	float LoH = dot( LightDir, H );
-	float EoH = dot( Eye, H );
-
-	//マイクロファセッとの分布関数D(h)
-	float3 D = GGX( Roughness, NoH );
-
-	//フレネル反射率F(v,h)
-	float3 F = Fresnel( F0, EoH );
-
-	//幾何減衰率項G(l,v,h)
-	float3 G = Geometric2( NoL, NoE, Roughness );
+	float G = Geometric( NoL, NoE, Roughness );
 
 	return ( D * F * G ) / ( 4 * NoL * NoE );
 }
@@ -481,18 +279,34 @@ struct PS_DEFERRED
 	float4 IBL      : COLOR2;
 };
 
+float3 LightPos = { 100.0f, 100.0f, 100.0f };
 float3 LightVec = { 1.0f, -1.0f, 1.0f };
 float3 LightColor = { 1.0f, 1.0f, 1.0f };
+float  LightFlux = 10000.0f;
 
 PS_DEFERRED PS_DirLight( float2 UV : TEXCOORD0 ) : COLOR
 {
 	PS_DEFERRED Out = ( PS_DEFERRED )0;
 
+    //遠い奴はは空としてライティングをスキップ(そのうち直す)
+    if( tex2D( DepthSamp, UV ).r >= 0.3f )
+	{
+		Out.Color    = float4( 1.0f, 1.0f, 1.0f, 1.0f );
+		Out.Specular = float4( 0.0f, 0.0f, 0.0f, 0.0f );
+		Out.IBL      = float4( 1.0f, 1.0f, 1.0f, 1.0f );
+		return Out;
+	}
+
     //BaseColor
-    float4 BaseColor = tex2D(ColorSamp, UV);
+    float4 BaseColor = tex2D( ColorSamp, UV );
     
     float4 Position = CalucuViewPosFromScreenPos( UV );
 	float3 Eye = normalize( -Position.xyz );
+
+	//Lightの位置から距離で輝度を求める
+	float4 LightViewPos = mul( float4( LightPos, 1.0f ), matView );
+	float dist = length( Position.xyz - LightViewPos.xyz );
+	float falloff = 1 / (pow(dist, 2 ) + 1);    //分母の＋１は０除算回避用
 
 	//光線ベクトルもビュー空間で計算
     float3 Light = normalize( mul( -LightVec, (float3x3)matView ) );
@@ -513,16 +327,15 @@ PS_DEFERRED PS_DirLight( float2 UV : TEXCOORD0 ) : COLOR
 
 	//Specular
 	float3 SpecularColor = lerp( float3( 1.0f, 1.0f, 1.0f ), BaseColor.rgb, Metalness );
-	float3 Specular = CookTorrance1( Normal, Light, Eye, Roughness, SpecularColor );
+	float3 Specular = CookTorrance( Normal, Light, Eye, Roughness, SpecularColor );
 
 	//出力
 	Out.Color.rgb = Diffuse * ( 1.0f - Metalness );  //Specularとの総和が１を超えないように
 	Out.Color.a = 1.0f;
-
 	Out.Specular.rgb = Specular * Metalness;         //Diffuseとの総和が１を超えないように
 	Out.Specular.a = 1.0f;
 
-	Out.IBL = texCUBEbias( CubeSamp, float4( Reflect, Roughness * (MaxMipMaplevel+1) ) );
+	Out.IBL = texCUBEbias( CubeSamp, float4(Reflect, Roughness * (MaxMipMaplevel + 1)) );
     
     return Out;
 }

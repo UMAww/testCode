@@ -62,7 +62,7 @@ private:
 #endif
 	void CreateSSAO();
 	void PostEffectProc();
-	void DirLight( Vector3 light_vec, Vector3 light_color );
+	void DirLight( Vector3 light_pos, Vector3 light_vec, Vector3 light_color, float light_flux );
 };
 
 

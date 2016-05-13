@@ -152,5 +152,11 @@
     <FxCompile Include="DATA\Shader\PhysicallyBased.fx">
       <Filter>シェーダー</Filter>
     </FxCompile>
+    <FxCompile Include="DATA\Shader\Utility.fx">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="DATA\Shader\TextureSamplers.fx">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

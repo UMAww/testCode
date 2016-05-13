@@ -24,11 +24,6 @@ bool sceneMain::Initialize()
 	iexLight::SetAmbient(0x404040);
 	iexLight::SetFog( 100, 100000, 0 );
 
-	Vector3 dir( .0f, -8.0f, -5.0f );
-	shader->SetValue("DirLightVec", dir*100.0f );
-	dir.Normalize();
-	iexLight::DirLight( shader, 0, &dir, 0.8f, 0.8f, 0.8f );
-
 	//	カメラ設定
 	camera = new Camera();
 
@@ -48,7 +43,7 @@ bool sceneMain::Initialize()
 	screen   = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	color    = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	normal   = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
-	depth    = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_FLOAT );
+	depth    = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	MR       = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	light    = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
 	specular = new iex2DObj( iexSystem::ScreenWidth, iexSystem::ScreenHeight, IEX2D_RENDERTARGET );
@@ -113,7 +108,7 @@ void	sceneMain::Render()
 	DeferredRenderProc();
 
 	//ポストエフェクトの適用
-	//PostEffectProc();
+	PostEffectProc();
 
 	//ForwardRenderProc();
 }
@@ -277,9 +272,11 @@ void sceneMain::DeferredRenderProc()
 	shader->SetValue("InvProjection", invProj );
 
 	//ライティングの計算
+	Vector3 lightpos( 5.0f, 20.0f, 10.0f );
 	Vector3 lightvec( -0.5f, -2.0f, -1.0f );
 	Vector3 lightcolor( 1.0f, 1.0f, 1.0f );
-	DirLight( lightvec, lightcolor );
+	float lightflux = 100000.0f;    //全光束
+	DirLight( lightpos, lightvec, lightcolor, lightflux );
 
 	//出力
 	iexSystem::Device->SetRenderTarget( 0, back );
@@ -289,7 +286,7 @@ void sceneMain::DeferredRenderProc()
 	ShowG_Buffer();
 }
 
-void sceneMain::DirLight( Vector3 light_vec, Vector3 light_color )
+void sceneMain::DirLight( Vector3 light_pos, Vector3 light_vec, Vector3 light_color, float light_flux )
 {
 	light->RenderTarget();
 	specular->RenderTarget( 1 );
@@ -297,9 +294,12 @@ void sceneMain::DirLight( Vector3 light_vec, Vector3 light_color )
 
 	camera->Clear();
 
-	light->Render( shader, "dirlight" );
+	shader->SetValue("LightPos", light_pos );
+	shader->SetValue("LightVec", light_vec);
+	shader->SetValue("LightColor", light_color);
+	shader->SetValue("LightFlux", light_flux);
 
-	shader->SetValue("LightVec", light_vec );
+	light->Render( shader, "dirlight" );
 
 	iexSystem::Device->SetRenderTarget( 0, back );
 	iexSystem::Device->SetRenderTarget( 1, NULL );
@@ -313,4 +313,8 @@ void sceneMain::DirLight( Vector3 light_vec, Vector3 light_color )
 void sceneMain::PostEffectProc()
 {
 	CreateSSAO();
+
+	SSAO->Render( 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight,
+		          0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight,
+		          RS_MUL );
 }
