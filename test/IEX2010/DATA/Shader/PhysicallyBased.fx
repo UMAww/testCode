@@ -284,16 +284,14 @@ float3 LightVec = { 1.0f, -1.0f, 1.0f };
 float3 LightColor = { 1.0f, 1.0f, 1.0f };
 float  LightFlux = 10000.0f;
 
-PS_DEFERRED PS_DirLight( float2 UV : TEXCOORD0 ) : COLOR
+float4 PS_DirLight( float2 UV : TEXCOORD0 ) : COLOR0
 {
-	PS_DEFERRED Out = ( PS_DEFERRED )0;
+	float4 Out = ( float4 )0;
 
     //遠い奴はは空としてライティングをスキップ(そのうち直す)
     if( tex2D( DepthSamp, UV ).r >= 0.3f )
 	{
-		Out.Color    = float4( 1.0f, 1.0f, 1.0f, 1.0f );
-		Out.Specular = float4( 0.0f, 0.0f, 0.0f, 0.0f );
-		Out.IBL      = float4( 1.0f, 1.0f, 1.0f, 1.0f );
+		Out = float4( 1.0f, 1.0f, 1.0f, 1.0f );
 		return Out;
 	}
 
@@ -302,11 +300,6 @@ PS_DEFERRED PS_DirLight( float2 UV : TEXCOORD0 ) : COLOR
     
     float4 Position = CalucuViewPosFromScreenPos( UV );
 	float3 Eye = normalize( -Position.xyz );
-
-	//Lightの位置から距離で輝度を求める
-	float4 LightViewPos = mul( float4( LightPos, 1.0f ), matView );
-	float dist = length( Position.xyz - LightViewPos.xyz );
-	float falloff = 1 / (pow(dist, 2 ) + 1);    //分母の＋１は０除算回避用
 
 	//光線ベクトルもビュー空間で計算
     float3 Light = normalize( mul( -LightVec, (float3x3)matView ) );
@@ -329,13 +322,15 @@ PS_DEFERRED PS_DirLight( float2 UV : TEXCOORD0 ) : COLOR
 	float3 SpecularColor = lerp( float3( 1.0f, 1.0f, 1.0f ), BaseColor.rgb, Metalness );
 	float3 Specular = CookTorrance( Normal, Light, Eye, Roughness, SpecularColor );
 
-	//出力
-	Out.Color.rgb = Diffuse * ( 1.0f - Metalness );  //Specularとの総和が１を超えないように
-	Out.Color.a = 1.0f;
-	Out.Specular.rgb = Specular * Metalness;         //Diffuseとの総和が１を超えないように
-	Out.Specular.a = 1.0f;
+	//直接光 光の総和が１を超えないように
+	float3 DirectLight = lerp( Diffuse, Specular, Metalness );
 
-	Out.IBL = texCUBEbias( CubeSamp, float4(Reflect, Roughness * (MaxMipMaplevel + 1)) );
+	//間接光
+	float4 IndirectLight = texCUBEbias( CubeSamp, float4( Reflect, Roughness * (MaxMipMaplevel + 1)) );
+
+	//出力
+	Out.rgb = DirectLight + IndirectLight.rgb;
+	Out.a = 1.0f;
     
     return Out;
 }
@@ -369,10 +364,6 @@ float4 PS_Deferred( float2 UV : TEXCOORD0 ) : COLOR0
 	Out.rgb = pow( Out.rgb, gamma );		//ディスプレイガンマを考慮して補正
 
 	Out.rgb *= tex2D( LightSamp, UV ).rgb;
-
-	Out.rgb += tex2D( SpecularSamp, UV ).rgb;
-
-	//Out.rgb *= tex2D( IBLSamp, UV ).rgb;
 
 	Out.rgb = pow( Out.rgb, 1.0f / gamma ); //ディスプレイガンマの逆補正をかけて出力
 	return Out;

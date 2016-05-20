@@ -107,10 +107,10 @@ void	sceneMain::Render()
 	//ディファードでライティング
 	DeferredRenderProc();
 
-	//ポストエフェクトの適用
-	PostEffectProc();
-
 	//ForwardRenderProc();
+
+	//ポストエフェクトの適用
+	//PostEffectProc();
 }
 
 void sceneMain::CreateG_Buffer()
@@ -155,8 +155,6 @@ void sceneMain::ShowG_Buffer()
 	depth   -> Render( 640,   0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
 	MR      -> Render( 960,   0, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
 	light   -> Render(   0, 160, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
-	specular-> Render( 320, 160, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
-	IBL     -> Render( 640, 160, 320, 160, 0, 0, iexSystem::ScreenWidth, iexSystem::ScreenHeight );
 }
 #endif
 
@@ -289,8 +287,6 @@ void sceneMain::DeferredRenderProc()
 void sceneMain::DirLight( Vector3 light_pos, Vector3 light_vec, Vector3 light_color, float light_flux )
 {
 	light->RenderTarget();
-	specular->RenderTarget( 1 );
-	IBL->RenderTarget( 2 );
 
 	camera->Clear();
 
@@ -302,12 +298,8 @@ void sceneMain::DirLight( Vector3 light_pos, Vector3 light_vec, Vector3 light_co
 	light->Render( shader, "dirlight" );
 
 	iexSystem::Device->SetRenderTarget( 0, back );
-	iexSystem::Device->SetRenderTarget( 1, NULL );
-	iexSystem::Device->SetRenderTarget( 2, NULL );
 
 	shader->SetValue("LightMap", light );
-	shader->SetValue("SpecularMap", specular );
-	shader->SetValue("IBLMap", IBL );
 }
 
 void sceneMain::PostEffectProc()
