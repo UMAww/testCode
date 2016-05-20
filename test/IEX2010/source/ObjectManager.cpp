@@ -23,7 +23,7 @@ ObjectManager::ObjectManager( char* filename )
 		for( int z = 0; z < static_cast<int>(MAX_NUM/COLUMN_NUM); z++ )
 		{
 			float pos_z = minZ + static_cast<float>( z ) * 2.0f;
-			int index = 10*x + z;
+			int index = COLUMN_NUM*x + z;
 			m_obj[index]->SetPos( Vector3( pos_x, pos_y, pos_z ) );
 			//‰¡—ñ¨Roughness
 			m_obj[index]->SetRoughness( static_cast<float>( x/10.0f ) );
